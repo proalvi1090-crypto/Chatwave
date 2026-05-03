@@ -201,19 +201,15 @@ export const useChatStore = create((set, get) => ({
         });
 
         const wait = Math.min(15000, 2500 * nextAttempts);
-        // Refactored to reduce nesting depth
-        const scheduleRetry = () => {
-          setTimeout(() => handleRetryCheck(pendingId), wait);
+        // Direct timeout without nested arrow functions to reduce nesting depth
+        const retryCallback = () => {
+          const msg = get().messages.find((item) => item._id === pendingId);
+          if (msg?.failed) {
+            get().retryFailedMessage(pendingId);
+          }
         };
-        scheduleRetry();
+        setTimeout(retryCallback, wait);
       }
-    };
-
-    const handleRetryCheck = (pendingId) => {
-      const message = get().messages.find((item) => item._id === pendingId);
-      // Use optional chaining instead of double negation
-      if (!message?.failed) return;
-      get().retryFailedMessage(pendingId);
     };
 
     await sendOnce(tempId);
