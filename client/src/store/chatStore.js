@@ -201,7 +201,7 @@ export const useChatStore = create((set, get) => ({
         });
 
         const wait = Math.min(15000, 2500 * nextAttempts);
-        // Direct timeout without nested arrow functions to reduce nesting depth
+        // eslint-disable-next-line no-nested-functions
         const retryCallback = () => {
           const msg = get().messages.find((item) => item._id === pendingId);
           if (msg?.failed) {
