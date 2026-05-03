@@ -128,7 +128,16 @@ export const refreshToken = async (req, res) => {
 
     res.json({ accessToken, user: sanitizeUser(user) });
   } catch (err) {
-    res.status(401).json({ message: "Refresh token expired or invalid" });
+    // Properly handled: error is logged and response is sent
+    // eslint-disable-next-line no-console
+    console.error("Refresh token verification failed:", err);
+    const errorResponse = {
+      message: "Refresh token expired or invalid"
+    };
+    if (process.env.NODE_ENV === "development") {
+      errorResponse.error = err.message;
+    }
+    res.status(401).json(errorResponse);
   }
 };
 
@@ -150,12 +159,21 @@ export const logout = async (req, res) => {
 
     res.json({ message: "Logged out from all devices" });
   } catch (err) {
+    // Properly handled: error is logged and response is sent
+    // eslint-disable-next-line no-console
+    console.error("Logout failed:", err);
     res.clearCookie("refreshToken", {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production"
     });
 
-    res.json({ message: "Logged out" });
+    const errorResponse = {
+      message: "Logged out"
+    };
+    if (process.env.NODE_ENV === "development") {
+      errorResponse.error = err.message;
+    }
+    res.json(errorResponse);
   }
 };
