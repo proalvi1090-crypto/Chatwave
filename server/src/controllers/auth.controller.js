@@ -7,6 +7,21 @@ import {
   REFRESH_TOKEN_COOKIE_OPTIONS
 } from "../utils/token.js";
 
+// Email validation regex
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validateInput = (name, email, password) => {
+  if (!name || typeof name !== "string" || name.trim().length === 0) {
+    throw new Error("Valid name is required");
+  }
+  if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
+    throw new Error("Valid email address is required");
+  }
+  if (!password || typeof password !== "string" || password.length < 8) {
+    throw new Error("Password must be at least 8 characters");
+  }
+};
+
 const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
@@ -20,15 +35,14 @@ export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: "Name, email and password are required" });
-    }
+    // Validate input before querying database
+    validateInput(name, email, password);
 
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) return res.status(409).json({ message: "Email already in use" });
 
     const hash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, password: hash });
+    const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password: hash });
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -43,7 +57,16 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+
+    // Validate email format before querying
+    if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
+      return res.status(400).json({ message: "Valid email address is required" });
+    }
+    if (!password || typeof password !== "string") {
+      return res.status(400).json({ message: "Password is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
