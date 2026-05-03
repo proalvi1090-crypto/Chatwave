@@ -7,14 +7,39 @@ import {
   REFRESH_TOKEN_COOKIE_OPTIONS
 } from "../utils/token.js";
 
-// Email validation regex
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const normalizeEmail = (email) => (typeof email === "string" ? email.trim().toLowerCase() : "");
+
+const isValidEmail = (email) => {
+  if (typeof email !== "string") {
+    return false;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const atIndex = normalizedEmail.indexOf("@");
+
+  if (atIndex <= 0 || atIndex !== normalizedEmail.lastIndexOf("@")) {
+    return false;
+  }
+
+  const localPart = normalizedEmail.slice(0, atIndex);
+  const domainPart = normalizedEmail.slice(atIndex + 1);
+
+  if (!localPart || !domainPart || localPart.includes(" ") || domainPart.includes(" ")) {
+    return false;
+  }
+
+  if (domainPart.startsWith(".") || domainPart.endsWith(".") || !domainPart.includes(".")) {
+    return false;
+  }
+
+  return true;
+};
 
 const validateInput = (name, email, password) => {
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     throw new Error("Valid name is required");
   }
-  if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
+  if (!isValidEmail(email)) {
     throw new Error("Valid email address is required");
   }
   if (!password || typeof password !== "string" || password.length < 8) {
@@ -34,15 +59,16 @@ const sanitizeUser = (user) => ({
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
     // Validate input before querying database
     validateInput(name, email, password);
 
-    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(409).json({ message: "Email already in use" });
 
     const hash = await bcrypt.hash(password, 12);
-    const user = await User.create({ name: name.trim(), email: email.toLowerCase().trim(), password: hash });
+    const user = await User.create({ name: name.trim(), email: normalizedEmail, password: hash });
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
@@ -57,16 +83,17 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
 
     // Validate email format before querying
-    if (!email || typeof email !== "string" || !emailRegex.test(email.trim())) {
+    if (!isValidEmail(email)) {
       return res.status(400).json({ message: "Valid email address is required" });
     }
     if (!password || typeof password !== "string") {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
