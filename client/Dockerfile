@@ -16,4 +16,5 @@ RUN chown -R node:node /app
 USER node
 
 EXPOSE 5173
+# hadolint disable=DL3025
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
