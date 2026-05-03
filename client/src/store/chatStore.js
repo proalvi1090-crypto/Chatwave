@@ -133,11 +133,17 @@ export const useChatStore = create((set, get) => ({
     const replyToId = get().replyingTo?._id || payload.replyTo || null;
     const userId = localStorage.getItem("userId");
 
+    // Extract nested ternary for better readability
+    const determineMessageType = () => {
+      if (!payload.file) return "text";
+      return payload.file.type?.startsWith("image/") ? "image" : "file";
+    };
+
     const optimisticMessage = {
       _id: tempId,
       clientId: tempId,
       content: payload.content || "",
-      type: payload.file ? (payload.file.type?.startsWith("image/") ? "image" : "file") : "text",
+      type: determineMessageType(),
       fileName: payload.file?.name || "",
       sender: { _id: userId, name: "You" },
       createdAt: new Date().toISOString(),
@@ -195,12 +201,19 @@ export const useChatStore = create((set, get) => ({
         });
 
         const wait = Math.min(15000, 2500 * nextAttempts);
-        setTimeout(() => {
-          const message = get().messages.find((item) => item._id === pendingId);
-          if (!message || !message.failed) return;
-          get().retryFailedMessage(pendingId);
-        }, wait);
+        // Refactored to reduce nesting depth
+        const scheduleRetry = () => {
+          setTimeout(() => handleRetryCheck(pendingId), wait);
+        };
+        scheduleRetry();
       }
+    };
+
+    const handleRetryCheck = (pendingId) => {
+      const message = get().messages.find((item) => item._id === pendingId);
+      // Use optional chaining instead of double negation
+      if (!message?.failed) return;
+      get().retryFailedMessage(pendingId);
     };
 
     await sendOnce(tempId);
