@@ -126,6 +126,9 @@ export const useChatStore = create((set, get) => ({
     });
   },
   sendMessage: async (payload) => {
+    // Using Math.random() is acceptable here as this is only for temporary client-side message ID
+    // not for cryptographic purposes. The actual message ID is generated server-side.
+    // eslint-disable-next-line no-restricted-properties
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const replyToId = get().replyingTo?._id || payload.replyTo || null;
     const userId = localStorage.getItem("userId");
