@@ -128,6 +128,7 @@ export const useChatStore = create((set, get) => ({
   generateTempMessageId: () => {
     // Using Math.random() is acceptable here for temporary client-side message ID
     // Not for cryptographic purposes. Actual message ID generated server-side.
+    // NOSONAR - Non-cryptographic use case (temporary UI message ID only)
     // eslint-disable-next-line no-restricted-properties
     return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   },
