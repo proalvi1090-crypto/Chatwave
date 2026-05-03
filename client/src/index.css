@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+  --tg-bg: #e5ebf4;
+  --tg-paper: #ffffff;
+  --tg-border: #c8d2df;
+  --tg-muted: #667487;
+  --tg-accent: #2563eb;
+  --tg-chat-bg: #edf2fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply m-0 font-body text-ink;
+  background-color: var(--tg-bg);
+  background-image: radial-gradient(circle at 12% 10%, rgba(37, 99, 235, 0.18), transparent 28%),
+    radial-gradient(circle at 85% 8%, rgba(14, 165, 233, 0.14), transparent 26%),
+    linear-gradient(140deg, #ecf2fb 0%, #e5ebf4 44%, #eef3fb 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.dark body {
+  @apply text-slate-100;
+  background-color: #090f1b;
+  background-image: radial-gradient(circle at 16% 12%, rgba(59, 130, 246, 0.2), transparent 32%),
+    radial-gradient(circle at 82% 8%, rgba(14, 165, 233, 0.16), transparent 28%),
+    linear-gradient(150deg, #0b1220 0%, #090f1b 45%, #0c1324 100%);
+}
+
+.glass {
+  backdrop-filter: blur(10px);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 255, 0.86));
+  border: 1px solid var(--tg-border);
+}
+
+.dark .glass {
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.82), rgba(8, 15, 31, 0.86));
+  border-color: #243349;
+}
+
+.auth-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  width: min(100%, 72rem);
+}
+
+.auth-hero {
+  background: radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.34), transparent 32%),
+    radial-gradient(circle at 80% 80%, rgba(153, 246, 228, 0.3), transparent 35%),
+    linear-gradient(155deg, #0f766e 0%, #0f9a8a 40%, #1d4ed8 100%);
+}
+
+.auth-hero::before {
+  content: "";
+  position: absolute;
+  inset: auto -24% -40% auto;
+  width: 420px;
+  height: 420px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 70%);
+}
+
+@media (max-width: 1023px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 860px) {
+  .auth-shell {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 1365px) {
+  .auth-hero h1 {
+    font-size: 2.5rem;
+    line-height: 1.1;
+  }
+}
