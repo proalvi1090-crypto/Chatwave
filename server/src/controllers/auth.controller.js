@@ -6,47 +6,44 @@ import {
   generateRefreshToken,
   REFRESH_TOKEN_COOKIE_OPTIONS
 } from "../utils/token.js";
+import {
+  BCRYPT_ROUNDS,
+  MIN_PASSWORD_LENGTH,
+  ERROR_MESSAGES,
+  HTTP_STATUS,
+  NODE_ENVIRONMENT
+} from "../utils/constants.js";
+import {
+  sendBadRequest,
+  sendUnauthorized,
+  sendConflict,
+  sendSuccessResponse,
+  handleCatchError
+} from "../utils/responseHandler.js";
+import {
+  isValidEmail,
+  normalizeEmail
+} from "../utils/queryHelpers.js";
 
-const normalizeEmail = (email) => (typeof email === "string" ? email.trim().toLowerCase() : "");
-
-const isValidEmail = (email) => {
-  if (typeof email !== "string") {
-    return false;
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const atIndex = normalizedEmail.indexOf("@");
-
-  if (atIndex <= 0 || atIndex !== normalizedEmail.lastIndexOf("@")) {
-    return false;
-  }
-
-  const localPart = normalizedEmail.slice(0, atIndex);
-  const domainPart = normalizedEmail.slice(atIndex + 1);
-
-  if (!localPart || !domainPart || localPart.includes(" ") || domainPart.includes(" ")) {
-    return false;
-  }
-
-  if (domainPart.startsWith(".") || domainPart.endsWith(".") || !domainPart.includes(".")) {
-    return false;
-  }
-
-  return true;
-};
-
-const validateInput = (name, email, password) => {
+/**
+ * Validate user registration input
+ * @throws {Error} If validation fails
+ */
+const validateRegisterInput = (name, email, password) => {
   if (!name || typeof name !== "string" || name.trim().length === 0) {
-    throw new Error("Valid name is required");
+    throw new Error(ERROR_MESSAGES.NAME_REQUIRED);
   }
   if (!isValidEmail(email)) {
-    throw new Error("Valid email address is required");
+    throw new Error(ERROR_MESSAGES.EMAIL_REQUIRED);
   }
-  if (!password || typeof password !== "string" || password.length < 8) {
-    throw new Error("Password must be at least 8 characters");
+  if (!password || typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(ERROR_MESSAGES.PASSWORD_TOO_SHORT);
   }
 };
 
+/**
+ * Sanitize user data for API responses
+ */
 const sanitizeUser = (user) => ({
   id: user._id,
   name: user.name,
@@ -62,21 +59,23 @@ export const register = async (req, res) => {
     const normalizedEmail = normalizeEmail(email);
 
     // Validate input before querying database
-    validateInput(name, email, password);
+    validateRegisterInput(name, email, password);
 
     const existing = await User.findOne({ email: normalizedEmail });
-    if (existing) return res.status(409).json({ message: "Email already in use" });
+    if (existing) {
+      return sendConflict(res, ERROR_MESSAGES.EMAIL_IN_USE);
+    }
 
-    const hash = await bcrypt.hash(password, 12);
+    const hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const user = await User.create({ name: name.trim(), email: normalizedEmail, password: hash });
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-    res.status(201).json({ accessToken, user: sanitizeUser(user) });
+    return sendSuccessResponse(res, HTTP_STATUS.CREATED, { accessToken, user: sanitizeUser(user) });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return sendBadRequest(res, err.message, { error: err });
   }
 };
 
@@ -87,57 +86,56 @@ export const login = async (req, res) => {
 
     // Validate email format before querying
     if (!isValidEmail(email)) {
-      return res.status(400).json({ message: "Valid email address is required" });
+      return sendBadRequest(res, ERROR_MESSAGES.EMAIL_REQUIRED);
     }
     if (!password || typeof password !== "string") {
-      return res.status(400).json({ message: "Password is required" });
+      return sendBadRequest(res, ERROR_MESSAGES.PASSWORD_REQUIRED);
     }
 
     const user = await User.findOne({ email: normalizedEmail });
 
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    if (!user) {
+      return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+    }
 
     const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) return res.status(401).json({ message: "Invalid credentials" });
+    if (!isValid) {
+      return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+    }
 
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
     res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-    res.json({ accessToken, user: sanitizeUser(user) });
+    return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: sanitizeUser(user) });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    return handleCatchError(err, res, "Login");
   }
 };
 
 export const refreshToken = async (req, res) => {
   try {
     const token = req.cookies.refreshToken;
-    if (!token) return res.status(401).json({ message: "No refresh token" });
+    if (!token) {
+      return sendUnauthorized(res, ERROR_MESSAGES.NO_REFRESH_TOKEN);
+    }
 
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(payload.sub);
 
     if (!user || user.refreshTokenVersion !== payload.v) {
-      return res.status(401).json({ message: "Invalid refresh token" });
+      return sendUnauthorized(res, ERROR_MESSAGES.REFRESH_TOKEN_INVALID);
     }
 
     const accessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
     res.cookie("refreshToken", newRefreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
-    res.json({ accessToken, user: sanitizeUser(user) });
+    return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: sanitizeUser(user) });
   } catch (err) {
-    // Properly handled: error is logged and response is sent
     // eslint-disable-next-line no-console
-    console.error("Refresh token verification failed:", err);
-    const errorResponse = {
-      message: "Refresh token expired or invalid"
-    };
-    if (process.env.NODE_ENV === "development") {
-      errorResponse.error = err.message;
-    }
-    res.status(401).json(errorResponse);
+    console.error("Refresh token verification failed:", err.message);
+    return sendUnauthorized(res, ERROR_MESSAGES.REFRESH_TOKEN_INVALID, { error: err });
   }
 };
 
@@ -154,26 +152,18 @@ export const logout = async (req, res) => {
     res.clearCookie("refreshToken", {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production"
+      secure: process.env.NODE_ENV === NODE_ENVIRONMENT.PRODUCTION
     });
 
-    res.json({ message: "Logged out from all devices" });
+    return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out from all devices");
   } catch (err) {
-    // Properly handled: error is logged and response is sent
     // eslint-disable-next-line no-console
-    console.error("Logout failed:", err);
+    console.error("Logout error:", err.message);
     res.clearCookie("refreshToken", {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production"
+      secure: process.env.NODE_ENV === NODE_ENVIRONMENT.PRODUCTION
     });
-
-    const errorResponse = {
-      message: "Logged out"
-    };
-    if (process.env.NODE_ENV === "development") {
-      errorResponse.error = err.message;
-    }
-    res.json(errorResponse);
+    return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out");
   }
 };
