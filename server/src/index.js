@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
-import http from "http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import http from "node:http";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -26,18 +26,41 @@ dotenv.config({ path: path.resolve(__dirname, "../.env"), override: true });
 const app = express();
 const server = http.createServer(app);
 
-const configuredOrigins = (process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const configuredOrigins = new Set(
+  (process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+);
+
+const isPrivateDevHost = (host) => {
+  if (host === "localhost" || host === "127.0.0.1") return true;
+
+  const octetStrings = host.split(".");
+  const octets = octetStrings.map((value) => Number.parseInt(value, 10));
+  if (octets.length !== 4 || octets.some((value) => Number.isNaN(value) || value < 0 || value > 255)) {
+    return false;
+  }
+
+  if (octets[0] === 10) return true;
+  if (octets[0] === 192 && octets[1] === 168) return true;
+  if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) return true;
+  return false;
+};
 
 const isLanDevOrigin = (origin) => {
   if (!origin || process.env.NODE_ENV === "production") return false;
-  return /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(origin);
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    return isPrivateDevHost(parsed.hostname);
+  } catch {
+    return false;
+  }
 };
 
 const corsOrigin = (origin, callback) => {
-  if (!origin || configuredOrigins.includes(origin) || isLanDevOrigin(origin)) {
+  if (!origin || configuredOrigins.has(origin) || isLanDevOrigin(origin)) {
     callback(null, true);
     return;
   }
@@ -79,7 +102,9 @@ const start = async () => {
   server.listen(port, () => console.log(`Server running on port ${port}`));
 };
 
-start().catch((err) => {
+try {
+  await start();
+} catch (err) {
   console.error("Startup failed:", err);
   process.exit(1);
-});
+}

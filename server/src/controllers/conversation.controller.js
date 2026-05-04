@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
+import { isDbBufferTimeout } from "../utils/dbHelpers.js";
 import {
   MIN_GROUP_MEMBERS,
   ERROR_MESSAGES,
@@ -61,6 +62,11 @@ export const getConversations = async (req, res) => {
     const payload = await withUnreadCounts(conversations, req.user._id);
     return sendSuccessResponse(res, HTTP_STATUS.OK, payload);
   } catch (err) {
+    // If DB is unavailable, return empty array instead of crashing
+    if (isDbBufferTimeout(err)) {
+      console.warn("Database timeout in getConversations, returning empty array");
+      return sendSuccessResponse(res, HTTP_STATUS.OK, []);
+    }
     return handleCatchError(err, res, "GetConversations");
   }
 };

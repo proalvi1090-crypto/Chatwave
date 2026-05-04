@@ -35,7 +35,7 @@ export const getIo = () => ioRef;
 
 const markOnline = async (userId) => {
   const redis = getRedisClient();
-  if (redis) await redis.set(`online:${userId}`, "1");
+  if (redis?.status === "ready") await redis.set(`online:${userId}`, "1");
 
   await User.findByIdAndUpdate(userId, { isOnline: true });
   ioRef.emit("user_online", userId);
@@ -43,7 +43,7 @@ const markOnline = async (userId) => {
 
 const markOffline = async (userId) => {
   const redis = getRedisClient();
-  if (redis) await redis.del(`online:${userId}`);
+  if (redis?.status === "ready") await redis.del(`online:${userId}`);
 
   const lastSeen = new Date();
   await User.findByIdAndUpdate(userId, { isOnline: false, lastSeen });
@@ -62,6 +62,7 @@ export const initSocket = (io) => {
       socket.userId = payload.sub;
       next();
     } catch (err) {
+      console.error("Socket auth error:", err.message);
       next(new Error("Unauthorized"));
     }
   });

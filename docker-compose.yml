@@ -46,6 +46,26 @@ services:
       - ./client:/app
       - /app/node_modules
 
+  bot:
+    build:
+      context: ./bot
+    container_name: chatwave-bot
+    env_file:
+      - ./.env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/chatwave
+      REDIS_URL: redis://redis:6379
+      BOT_MODE: polling
+      BOT_PORT: 7001
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "7001:7001"
+    volumes:
+      - ./bot:/app
+      - /app/node_modules
+
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: chatwave-tunnel

@@ -2,16 +2,20 @@
 
 A WhatsApp Web-style, self-hosted chat application with private messaging, group chat, media/file upload, and real-time updates.
 
+The workspace now also includes a separate Telegram bot service that can be run alongside the web app.
+
 ## Stack
 
 - Frontend: React 18, Vite, TailwindCSS, Zustand, Socket.io-client, React Router v6
 - Backend: Node.js, Express, Socket.io, MongoDB (Mongoose), Redis (ioredis), JWT, bcrypt, Multer, Cloudinary, Web Push
+- Bot: Node.js, Telegraf, MongoDB, Redis, OpenAI-compatible optional voice transcription
 - DevOps: Docker, Docker Compose, MongoDB Atlas free tier, Render-compatible
 
 ## Project Structure
 
 - client: React app
 - server: Express + Socket server
+- bot: Telegram bot service
 - docker-compose.yml: local services (client, server, redis)
 - .env.example: server env reference
 
@@ -56,6 +60,25 @@ A WhatsApp Web-style, self-hosted chat application with private messaging, group
 - Light/dark mode
 - Animated glassmorphism-style panels
 
+## Telegram Bot Service
+
+The `bot/` service is isolated from the web app so existing ChatWave features stay intact.
+
+It includes:
+
+- Multi-turn conversation memory stored in MongoDB
+- Inline keyboard buttons and callback query handling
+- Guided state-machine flow via `/survey`
+- Command routing for `/start`, `/help`, `/memory`, `/weather`, `/news`, `/ai`, and `/remind`
+- Media handling for photo, video, audio, document, sticker, GIF, and voice messages
+- Optional voice note transcription when `OPENAI_API_KEY` is set
+- Inline mode support
+- Deep linking with `/start <payload>`
+- Group moderation helpers for ban, kick, mute, unmute, welcome messages, and anti-spam toggles
+- Reminder scheduling backed by MongoDB
+
+Run it locally with `docker compose up --build` or start the service from `bot/` after setting `BOT_TOKEN`.
+
 ## Environment Setup
 
 ### 1) Server env
@@ -76,7 +99,22 @@ Copy values from .env.example into your real env file for server:
 - VAPID_PRIVATE_KEY
 - VAPID_SUBJECT
 
-### 2) Client env
+### 2) Bot env
+
+Set these values for the Telegram bot service:
+
+- BOT_TOKEN
+- BOT_MODE
+- BOT_PORT
+- BOT_WEBHOOK_URL
+- BOT_WEBHOOK_PATH
+- BOT_MEMORY_WINDOW
+- OPENAI_API_KEY
+- OPENAI_MODEL
+
+When `BOT_MODE=webhook`, `BOT_WEBHOOK_URL` must be the public HTTPS base URL.
+
+### 3) Client env
 
 Use client/.env.example and set:
 
@@ -102,6 +140,14 @@ npm install
 npm run dev
 ```
 
+### Bot
+
+```bash
+cd bot
+npm install
+npm run dev
+```
+
 ## Run with Docker
 
 From project root:
@@ -112,6 +158,7 @@ docker compose up --build
 
 Client: http://localhost:5173
 Server: http://localhost:5000
+Bot health: http://localhost:7001/healthz
 
 ## REST API Endpoints
 
