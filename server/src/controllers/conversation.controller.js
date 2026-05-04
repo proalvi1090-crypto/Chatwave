@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
 import { isDbBufferTimeout } from "../utils/dbHelpers.js";
@@ -52,6 +51,64 @@ const withUnreadCounts = (conversations, userId) =>
  * Populate conversation with detailed data
  */
 const populateConversation = (conversation) => Conversation.findById(conversation._id).populate(listPopulate);
+
+/**
+ * Ensure the conversation exists and is a group conversation
+ */
+const getGroupConversation = async (conversationId) => {
+  const conversation = await Conversation.findById(conversationId);
+  if (conversation?.isGroup !== true) {
+    return null;
+  }
+
+  return conversation;
+};
+
+/**
+ * Check whether the current user is the conversation admin
+ */
+const isConversationAdmin = (conversation, userId) =>
+  conversation?.admin?.toString() === userId.toString();
+
+/**
+ * Check whether a user is already part of a conversation
+ */
+const isConversationParticipant = (conversation, userId) =>
+  conversation?.participants?.some((participant) => participant.toString() === userId.toString());
+
+/**
+ * Apply a user-scoped preference toggle to a conversation array field
+ */
+const updateUserScopedList = (items, userId, enabled) => {
+  const currentItems = Array.isArray(items) ? items : [];
+  const uid = userId.toString();
+  const hasItem = currentItems.some((item) => item.toString() === uid);
+
+  if (enabled) {
+    return hasItem ? currentItems : [...currentItems, userId];
+  }
+
+  return currentItems.filter((item) => item.toString() !== uid);
+};
+
+/**
+ * Apply conversation preference changes in a single place
+ */
+const applyConversationPreferences = (conversation, { muted, favorite, wallpaper }, userId) => {
+  if (muted !== undefined) {
+    conversation.mutedBy = updateUserScopedList(conversation.mutedBy, userId, muted);
+  }
+
+  if (favorite !== undefined) {
+    conversation.favoriteBy = updateUserScopedList(conversation.favoriteBy, userId, favorite);
+  }
+
+  if (wallpaper !== undefined) {
+    conversation.wallpaper = String(wallpaper || "aurora");
+  }
+
+  return conversation;
+};
 
 export const getConversations = async (req, res) => {
   try {
@@ -107,7 +164,7 @@ export const createGroupConversation = async (req, res) => {
     }
 
     const uniqueMembers = Array.from(new Set([...memberIds, req.user._id.toString()]));
-    const participants = uniqueMembers.map((id) => new mongoose.Types.ObjectId(id));
+    const participants = uniqueMembers.map(String);
 
     const group = await Conversation.create({
       isGroup: CONVERSATION_TYPES.GROUP,
@@ -147,12 +204,12 @@ export const getConversationById = async (req, res) => {
 
 export const updateGroupConversation = async (req, res) => {
   try {
-    const conversation = await Conversation.findById(req.params.id);
-    if (!conversation || !conversation.isGroup) {
+    const conversation = await getGroupConversation(req.params.id);
+    if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
 
-    if (conversation.admin?.toString() !== req.user._id.toString()) {
+    if (!isConversationAdmin(conversation, req.user._id)) {
       return sendForbidden(res, "Only admin can update group");
     }
 
@@ -174,16 +231,16 @@ export const addGroupMember = async (req, res) => {
     const { id } = req.params;
     const { userId } = req.body;
 
-    const conversation = await Conversation.findById(id);
-    if (!conversation || !conversation.isGroup) {
+    const conversation = await getGroupConversation(id);
+    if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
 
-    if (conversation.admin?.toString() !== req.user._id.toString()) {
+    if (!isConversationAdmin(conversation, req.user._id)) {
       return sendForbidden(res, "Only admin can add member");
     }
 
-    if (!conversation.participants.some((p) => p.toString() === userId)) {
+    if (!isConversationParticipant(conversation, userId)) {
       conversation.participants.push(userId);
       await conversation.save();
     }
@@ -199,13 +256,13 @@ export const addGroupMember = async (req, res) => {
 export const removeGroupMember = async (req, res) => {
   try {
     const { id, userId } = req.params;
-    const conversation = await Conversation.findById(id);
+    const conversation = await getGroupConversation(id);
 
-    if (!conversation || !conversation.isGroup) {
+    if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
 
-    const isAdmin = conversation.admin?.toString() === req.user._id.toString();
+    const isAdmin = isConversationAdmin(conversation, req.user._id);
     const removingSelf = req.user._id.toString() === userId;
 
     if (!isAdmin && !removingSelf) {
@@ -230,41 +287,19 @@ export const removeGroupMember = async (req, res) => {
 export const updateConversationPreferences = async (req, res) => {
   try {
     const { id } = req.params;
-    const { muted, favorite, wallpaper } = req.body;
+    const preferences = req.body;
 
     const conversation = await Conversation.findById(id);
     if (!conversation) {
       return sendNotFound(res, ERROR_MESSAGES.CONVERSATION_NOT_FOUND);
     }
 
-    const isParticipant = conversation.participants.some((p) => p.toString() === req.user._id.toString());
+    const isParticipant = isConversationParticipant(conversation, req.user._id);
     if (!isParticipant) {
       return sendForbidden(res, ERROR_MESSAGES.FORBIDDEN);
     }
 
-    const uid = req.user._id.toString();
-
-    if (muted !== undefined) {
-      if (muted && !conversation.mutedBy.some((x) => x.toString() === uid)) {
-        conversation.mutedBy.push(req.user._id);
-      }
-      if (!muted) {
-        conversation.mutedBy = conversation.mutedBy.filter((x) => x.toString() !== uid);
-      }
-    }
-
-    if (favorite !== undefined) {
-      if (favorite && !conversation.favoriteBy.some((x) => x.toString() === uid)) {
-        conversation.favoriteBy.push(req.user._id);
-      }
-      if (!favorite) {
-        conversation.favoriteBy = conversation.favoriteBy.filter((x) => x.toString() !== uid);
-      }
-    }
-
-    if (wallpaper !== undefined) {
-      conversation.wallpaper = String(wallpaper || "aurora");
-    }
+    applyConversationPreferences(conversation, preferences, req.user._id);
 
     await conversation.save();
     const populated = await populateConversation(conversation);
