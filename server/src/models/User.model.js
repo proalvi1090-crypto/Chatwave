@@ -27,4 +27,8 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+userSchema.virtual("tokenVersion").get(function tokenVersionGetter() {
+  return this.refreshTokenVersion;
+});
+
 export const User = mongoose.model("User", userSchema);

@@ -8,7 +8,8 @@ export const generateAccessToken = (user) =>
     {
       sub: user._id,
       email: user.email,
-      name: user.name
+      name: user.name,
+      tokenVersion: user.tokenVersion ?? user.refreshTokenVersion ?? 0
     },
     process.env.JWT_SECRET,
     { expiresIn: ACCESS_TOKEN_AGE }

@@ -49,7 +49,7 @@ const isPrivateDevHost = (host) => {
 };
 
 const isLanDevOrigin = (origin) => {
-  if (!origin || process.env.NODE_ENV === "production") return false;
+  if (process.env.NODE_ENV !== "development") return false;
   try {
     const parsed = new URL(origin);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
@@ -60,7 +60,17 @@ const isLanDevOrigin = (origin) => {
 };
 
 const corsOrigin = (origin, callback) => {
-  if (!origin || configuredOrigins.has(origin) || isLanDevOrigin(origin)) {
+  if (!origin) {
+    if (process.env.NODE_ENV === "production") {
+      callback(new Error("Not allowed by CORS"));
+      return;
+    }
+
+    callback(null, true);
+    return;
+  }
+
+  if (configuredOrigins.has(origin) || isLanDevOrigin(origin)) {
     callback(null, true);
     return;
   }

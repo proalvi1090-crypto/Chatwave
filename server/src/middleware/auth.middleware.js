@@ -12,10 +12,13 @@ export const requireAuth = async (req, res, next) => {
     const user = await User.findById(payload.sub).select("-password");
 
     if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (payload.tokenVersion !== user.tokenVersion) return res.status(401).json({ message: "Token is no longer valid" });
 
     req.user = user;
     next();
   } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Auth token verification failed:", err.message);
     return res.status(401).json({ message: "Invalid token" });
   }
 };
