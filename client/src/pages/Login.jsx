@@ -27,7 +27,7 @@ export default function Login() {
         initial={{ opacity: 0, scale: 0.98, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="auth-layout mx-auto max-w-6xl overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-[0_30px_80px_rgba(6,24,44,0.22)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/85"
+        className="auth-layout panel-frame mx-auto max-w-6xl overflow-hidden rounded-[28px]"
       >
         <section className="auth-hero relative hidden overflow-hidden p-10 text-white lg:block">
           <motion.div
@@ -41,7 +41,7 @@ export default function Login() {
             className="pointer-events-none absolute -bottom-16 left-0 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl"
           />
           <motion.div className="relative z-10 h-full w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.55 }}>
-            <div className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-white/90">
+            <div className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-white/90">
               <Sparkles size={12} /> CHATWAVE PRO
             </div>
 
@@ -69,7 +69,7 @@ export default function Login() {
             <div className="absolute inset-0">
               {Array.from({ length: 18 }).map((_, idx) => (
                 <motion.span
-                  key={`node-${idx}`}
+                  key={`node-${10 + (idx % 6) * 15}-${16 + Math.floor(idx / 6) * 24}`}
                   className="absolute h-2 w-2 rounded-full bg-cyan-200/80 shadow-[0_0_18px_rgba(103,232,249,0.85)]"
                   style={{
                     left: `${10 + (idx % 6) * 15}%`,
@@ -92,7 +92,7 @@ export default function Login() {
           >
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Welcome back</p>
             <h2 className="mt-2 font-display text-3xl font-semibold text-slate-900 dark:text-slate-50">Sign in to ChatWave</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Continue where your team left off.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">A premium workspace for fast, focused conversations.</p>
 
             <motion.form onSubmit={submit} className="mt-8 space-y-4" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.15 }}>
               <input
@@ -101,7 +101,7 @@ export default function Login() {
                 placeholder="Email address"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15 dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-2xl border border-white/10 bg-white/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/15 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/35"
               />
               <input
                 required
@@ -109,14 +109,14 @@ export default function Login() {
                 placeholder="Password"
                 value={form.password}
                 onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#2563eb] focus:ring-4 focus:ring-[#2563eb]/15 dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-2xl border border-white/10 bg-white/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/15 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/35"
               />
               {error ? <p className="text-sm text-rose-500">{error}</p> : null}
               <Button type="submit" className="w-full rounded-2xl py-3 text-sm font-semibold">{loading ? "Signing in..." : "Login"}</Button>
             </motion.form>
 
             <p className="mt-6 text-sm text-slate-600 dark:text-slate-300">
-              No account? <Link className="font-semibold text-[#2563eb]" to="/register">Create one</Link>
+              No account? <Link className="font-semibold text-[#6366f1]" to="/register">Create one</Link>
             </p>
           </motion.div>
         </section>

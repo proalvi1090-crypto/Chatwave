@@ -25,10 +25,41 @@ import {
   Video
 } from "lucide-react";
 
+import PropTypes from "prop-types";
+
 const getConversationLabel = (conversation, userId) => {
   if (!conversation) return "";
   if (conversation.isGroup) return conversation.name || "Unnamed group";
   return conversation.participants?.find((participant) => participant._id !== userId)?.name || "Private chat";
+};
+
+const getConversationSubtitle = (conversation, otherParticipant, participants) => {
+  if (conversation?.isGroup) {
+    return `${participants.length || 0} members`;
+  }
+
+  if (!otherParticipant) return "Direct conversation";
+  if (otherParticipant.isOnline) return "Online";
+  if (otherParticipant.lastSeen) return `Last seen ${new Date(otherParticipant.lastSeen).toLocaleString()}`;
+  return otherParticipant.bio || "Direct conversation";
+};
+
+const getReplyToId = (message) => {
+  if (message.replyTo?._id) return String(message.replyTo._id);
+  if (message.replyTo) return String(message.replyTo);
+  return "";
+};
+
+const getWallpaperClass = (conversation) => {
+  if (conversation?.wallpaper === "sunset") {
+    return "bg-[radial-gradient(circle_at_15%_15%,rgba(255,191,128,0.16),transparent_30%),linear-gradient(160deg,#131722_0%,#171c28_45%,#10131a_100%)]";
+  }
+
+  if (conversation?.wallpaper === "forest") {
+    return "bg-[radial-gradient(circle_at_18%_15%,rgba(102,187,106,0.14),transparent_30%),linear-gradient(160deg,#111723_0%,#121b28_45%,#10131a_100%)]";
+  }
+
+  return "bg-[radial-gradient(circle_at_18%_15%,rgba(74,222,222,0.12),transparent_30%),linear-gradient(160deg,#121822_0%,#0f131b_50%,#0f1219_100%)]";
 };
 
 export default function ChatWindow({ onBack }) {
@@ -82,8 +113,8 @@ export default function ChatWindow({ onBack }) {
         setShowQuickMenu(false);
       }
     };
-    window.addEventListener("mousedown", closeOnOutside);
-    return () => window.removeEventListener("mousedown", closeOnOutside);
+    globalThis.addEventListener("mousedown", closeOnOutside);
+    return () => globalThis.removeEventListener("mousedown", closeOnOutside);
   }, []);
 
   useEffect(() => {
@@ -114,15 +145,7 @@ export default function ChatWindow({ onBack }) {
     .map((id) => participants.find((participant) => String(participant._id) === String(id))?.name)
     .filter(Boolean);
   const title = getConversationLabel(activeConversation, userId);
-  const subtitle = activeConversation?.isGroup
-    ? `${participants.length || 0} members`
-    : otherParticipant
-      ? otherParticipant.isOnline
-        ? "Online"
-        : otherParticipant.lastSeen
-          ? `Last seen ${new Date(otherParticipant.lastSeen).toLocaleString()}`
-          : otherParticipant.bio || "Direct conversation"
-      : "Direct conversation";
+  const subtitle = getConversationSubtitle(activeConversation, otherParticipant, participants);
   const remoteUserId = otherParticipant?._id ? String(otherParticipant._id) : null;
 
   const clearCallMedia = () => {
@@ -449,18 +472,13 @@ export default function ChatWindow({ onBack }) {
     if (!threadRootId) return [];
     return safeMessages.filter((message) => {
       const messageId = String(message._id);
-      const replyToId = message.replyTo?._id ? String(message.replyTo._id) : message.replyTo ? String(message.replyTo) : "";
+      const replyToId = getReplyToId(message);
       return messageId === String(threadRootId) || replyToId === String(threadRootId);
     });
   }, [safeMessages, threadRootId]);
   const threadRoot = safeMessages.find((message) => String(message._id) === String(threadRootId));
 
-  const wallpaperClass =
-    activeConversation?.wallpaper === "sunset"
-      ? "bg-[radial-gradient(circle_at_15%_15%,rgba(255,191,128,0.16),transparent_30%),linear-gradient(160deg,#131722_0%,#171c28_45%,#10131a_100%)]"
-      : activeConversation?.wallpaper === "forest"
-        ? "bg-[radial-gradient(circle_at_18%_15%,rgba(102,187,106,0.14),transparent_30%),linear-gradient(160deg,#111723_0%,#121b28_45%,#10131a_100%)]"
-        : "bg-[radial-gradient(circle_at_18%_15%,rgba(74,222,222,0.12),transparent_30%),linear-gradient(160deg,#121822_0%,#0f131b_50%,#0f1219_100%)]";
+  const wallpaperClass = getWallpaperClass(activeConversation);
 
   const resetFilters = () => {
     setMessageFilters({ q: "", type: "all", pinnedOnly: false, sender: "all", hasFile: false, from: "", to: "" });
@@ -468,15 +486,15 @@ export default function ChatWindow({ onBack }) {
 
   if (!activeConversation) {
     return (
-      <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-white/10 p-6 text-center text-white/60">
+      <div className="panel-surface flex h-full items-center justify-center rounded-[28px] p-6 text-center text-white/60">
         Select or start a conversation
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#10131a] text-white">
-      <div className="relative border-b border-white/10 bg-[#151922] px-3 py-2.5 md:px-4 md:py-3">
+    <div className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent text-white">
+      <div className="relative border-b border-white/10 bg-white/5 px-3 py-2.5 backdrop-blur-xl md:px-4 md:py-3">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -495,7 +513,7 @@ export default function ChatWindow({ onBack }) {
             </div>
           </div>
           <div className="relative flex items-center gap-2" ref={quickMenuRef}>
-            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60 backdrop-blur-xl">
               {typing ? "Typing..." : "Live"}
             </div>
             <button
@@ -525,7 +543,7 @@ export default function ChatWindow({ onBack }) {
               <MoreVertical size={16} />
             </button>
             {showQuickMenu ? (
-              <div className="absolute right-0 top-11 z-20 w-52 rounded-xl border border-white/10 bg-[#121621] p-2 shadow-xl">
+              <div className="absolute right-0 top-11 z-20 w-52 rounded-2xl border border-white/10 bg-[#0f1320]/95 p-2 shadow-xl backdrop-blur-xl">
                 <button
                   type="button"
                   onClick={() => {
@@ -653,7 +671,7 @@ export default function ChatWindow({ onBack }) {
       ) : null}
 
       {incomingCall && callStatus === "ringing" ? (
-        <div className="border-b border-sky-400/30 bg-sky-500/10 px-4 py-3 text-white">
+        <div className="border-b border-[#818cf8]/30 bg-[#6366f1]/10 px-4 py-3 text-white backdrop-blur-xl">
           <p className="text-sm font-semibold">{incomingCall.fromUserName || "Someone"} is calling ({incomingCall.type === "video" ? "video" : "voice"})</p>
           <div className="mt-2 flex items-center gap-2">
             <button
@@ -675,7 +693,7 @@ export default function ChatWindow({ onBack }) {
       ) : null}
 
       {callStatus !== "idle" && !incomingCall ? (
-        <div className="border-b border-white/10 bg-[#0f1420] px-4 py-3 text-white">
+        <div className="border-b border-white/10 bg-white/5 px-4 py-3 text-white backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">{callType === "video" ? "Video call" : "Voice call"}</p>
@@ -690,13 +708,21 @@ export default function ChatWindow({ onBack }) {
                 {isMuted ? <MicOff size={14} /> : <Mic size={14} />}
               </button>
               {callType === "video" ? (
+                (() => {
+                  const videoEnabledClass = isVideoEnabled
+                    ? "border-white/10 bg-white/5 text-white/80"
+                    : "border-amber-400/60 bg-amber-400/15 text-amber-200";
+
+                  return (
                 <button
                   type="button"
                   onClick={toggleVideo}
-                  className={`rounded-full border px-3 py-2 text-xs ${!isVideoEnabled ? "border-amber-400/60 bg-amber-400/15 text-amber-200" : "border-white/10 bg-white/5 text-white/80"}`}
+                  className={`rounded-full border px-3 py-2 text-xs ${videoEnabledClass}`}
                 >
                   {isVideoEnabled ? <Camera size={14} /> : <CameraOff size={14} />}
-                </button>
+                  </button>
+                  );
+                })()
               ) : null}
               <button
                 type="button"
@@ -731,7 +757,7 @@ export default function ChatWindow({ onBack }) {
       ) : null}
 
       {threadRootId ? (
-        <div className="border-b border-white/10 bg-[#121621] px-4 py-3 text-white">
+        <div className="border-b border-white/10 bg-white/5 px-4 py-3 text-white backdrop-blur-xl">
           <p className="text-xs uppercase tracking-[0.2em] text-white/45">Reply thread</p>
           <p className="mt-1 truncate text-sm font-medium text-white">{threadRoot?.content || threadRoot?.fileName || "Thread root message"}</p>
           <p className="text-xs text-white/45">{threadMessages.length} messages</p>
@@ -739,7 +765,7 @@ export default function ChatWindow({ onBack }) {
       ) : null}
 
       {showGallery ? (
-        <div className="max-h-40 overflow-y-auto border-b border-white/10 px-4 py-3">
+        <div className="max-h-40 overflow-y-auto border-b border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
           <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
             {mediaMessages.map((message) => (
               <a key={`media-${message._id}`} href={message.fileUrl} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border border-white/10 bg-white/5 p-1">
@@ -755,7 +781,7 @@ export default function ChatWindow({ onBack }) {
       ) : null}
 
       {showHistory ? (
-        <div className="max-h-40 overflow-y-auto border-b border-white/10 px-4 py-3">
+        <div className="max-h-40 overflow-y-auto border-b border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs uppercase tracking-[0.2em] text-white/45">Download history</p>
             <button type="button" onClick={clearDownloadHistory} className="text-xs text-red-300">Clear</button>
@@ -784,9 +810,13 @@ export default function ChatWindow({ onBack }) {
           ))}
         </div>
       </div>
-      <div className="shrink-0 border-t border-white/10 bg-[#0f131b]">
+      <div className="shrink-0 border-t border-white/10 bg-white/5 backdrop-blur-xl">
         <InputBox />
       </div>
     </div>
   );
 }
+
+ChatWindow.propTypes = {
+  onBack: PropTypes.func
+};

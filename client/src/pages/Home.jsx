@@ -94,8 +94,8 @@ export default function Home() {
       retryAllFailedMessages();
     };
 
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    globalThis.addEventListener("online", handleOnline);
+    return () => globalThis.removeEventListener("online", handleOnline);
   }, [retryAllFailedMessages]);
 
   useEffect(() => {
@@ -104,12 +104,12 @@ export default function Home() {
         setShowTopMenu(false);
       }
     };
-    window.addEventListener("mousedown", closeMenuOnOutside);
-    return () => window.removeEventListener("mousedown", closeMenuOnOutside);
+    globalThis.addEventListener("mousedown", closeMenuOnOutside);
+    return () => globalThis.removeEventListener("mousedown", closeMenuOnOutside);
   }, []);
 
   const focusSidebarSearch = () => {
-    window.dispatchEvent(new Event("chatwave:focus-search"));
+    globalThis.dispatchEvent(new Event("chatwave:focus-search"));
     toast.success("Search is ready");
   };
 
@@ -119,17 +119,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0b0e14] p-1 md:p-2.5">
+    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_8%,rgba(99,102,241,0.28),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(124,58,237,0.22),transparent_26%),linear-gradient(145deg,#070814_0%,#0b1020_42%,#11162a_100%)] p-1 md:p-2.5">
       <CreateGroup open={groupOpen} onClose={() => setGroupOpen(false)} />
-      <div className="mx-auto flex h-[calc(100dvh-0.5rem)] max-w-[1600px] flex-col overflow-hidden rounded-[18px] border border-white/10 bg-[#11131a] shadow-[0_18px_55px_rgba(0,0,0,0.45)]">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-[#151922] px-3 py-2.5 text-white/80">
+      <div className="panel-frame mx-auto flex h-[calc(100dvh-0.5rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/10 text-white">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-3 py-2.5 text-white/80 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.75)]" />{" "}
               ChatWave Workspace
             </div>
             <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 md:flex">
-              Download With ABDM (1)
+              Premium messaging interface
             </div>
           </div>
           <div className="relative flex items-center gap-2 text-white/70" ref={topMenuRef}>
@@ -191,14 +191,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid flex-1 min-h-0 gap-0 overflow-hidden lg:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className={`relative flex min-h-0 flex-col overflow-hidden border-0 border-r border-r-white/10 bg-[#161922] p-3 text-white ${activeConversation ? "hidden lg:block" : "block"}`}>
-          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-[#2b2f3a] to-[#161922]" />
+        <div className="grid flex-1 min-h-0 gap-0 overflow-hidden lg:grid-cols-[352px_minmax(0,1fr)]">
+        <aside className={`relative flex min-h-0 flex-col overflow-hidden border-0 border-r border-r-white/10 bg-white/5 p-3 text-white backdrop-blur-xl ${activeConversation ? "hidden lg:block" : "block"}`}>
+          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.35),transparent_42%),linear-gradient(90deg,rgba(79,70,229,0.2),transparent)]" />
           <div className="relative mb-3 mt-1 flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">Workspace</p>
               <h2 className="font-display text-xl font-semibold leading-tight text-white">{user?.name || "User"}</h2>
-              <p className="text-xs text-white/60">Professional messenger</p>
+              <p className="text-xs text-white/60">Glassmorphism • Manrope • Indigo Violet</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -222,7 +222,7 @@ export default function Home() {
             <SearchBar />
             <button
               onClick={() => setGroupOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#2a65f7] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1d4ed8]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#8b5cf6] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
             >
               <Users size={16} /> Create Group
             </button>
@@ -232,7 +232,7 @@ export default function Home() {
           </div>
         </aside>
 
-        <main className={`min-h-0 min-w-0 flex-col bg-[#10131a] ${activeConversation ? "flex" : "hidden lg:flex"}`}>
+        <main className={`min-h-0 min-w-0 flex-col bg-transparent ${activeConversation ? "flex" : "hidden lg:flex"}`}>
           <ChatWindow onBack={clearActiveConversation} />
         </main>
         </div>

@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { useChatStore } from "../../store/chatStore";
 
+const getUserStatusText = (user) => {
+  if (user.bio) return user.bio;
+  if (user.isOnline) return "Online now";
+  if (user.lastSeen) return `Last seen ${dayjs(user.lastSeen).fromNow?.() || dayjs(user.lastSeen).format("DD MMM")}`;
+  return "Tap to start a chat";
+};
+
 export default function SearchBar() {
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
@@ -14,8 +21,8 @@ export default function SearchBar() {
 
   useEffect(() => {
     const focusInput = () => inputRef.current?.focus();
-    window.addEventListener("chatwave:focus-search", focusInput);
-    return () => window.removeEventListener("chatwave:focus-search", focusInput);
+    globalThis.addEventListener("chatwave:focus-search", focusInput);
+    return () => globalThis.removeEventListener("chatwave:focus-search", focusInput);
   }, []);
 
   return (
@@ -25,10 +32,10 @@ export default function SearchBar() {
         value={query}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search teammate"
-        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-sky-400/60 focus:ring-4 focus:ring-sky-400/10"
+        className="w-full rounded-2xl border border-white/10 bg-white/8 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#818cf8]/60 focus:ring-4 focus:ring-[#818cf8]/10"
       />
       {query && (
-        <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-white/10 bg-[#121621] p-2 shadow-[0_18px_35px_rgba(0,0,0,0.25)]">
+        <div className="mt-2 max-h-56 overflow-auto rounded-2xl border border-white/10 bg-[#0f1320]/95 p-2 shadow-[0_18px_35px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           {searchResults.map((user) => (
             <button
               key={user._id}
@@ -41,9 +48,7 @@ export default function SearchBar() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-white">{user.name}</div>
-                  <div className="truncate text-xs text-white/55">
-                    {user.bio || (user.isOnline ? "Online now" : user.lastSeen ? `Last seen ${dayjs(user.lastSeen).fromNow?.() || dayjs(user.lastSeen).format("DD MMM")}` : "Tap to start a chat")}
-                  </div>
+                  <div className="truncate text-xs text-white/55">{getUserStatusText(user)}</div>
                 </div>
                 <span className={`h-2.5 w-2.5 rounded-full ${user.isOnline ? "bg-emerald-400" : "bg-slate-400"}`} />
               </div>
