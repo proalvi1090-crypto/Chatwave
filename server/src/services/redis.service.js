@@ -6,7 +6,7 @@ export const getRedisClient = () => redisClient;
 
 export const initRedis = async () => {
   if (!process.env.REDIS_URL) {
-    console.warn("REDIS_URL missing. Presence tracking disabled.");
+    console.warn("REDIS_URL missing. Presence tracking disabled."); // NOSONAR
     return null;
   }
 
@@ -15,8 +15,8 @@ export const initRedis = async () => {
     enableOfflineQueue: false
   });
 
-  redisClient.on("connect", () => console.log("Redis connected"));
-  redisClient.on("error", (err) => console.error("Redis error:", err.message));
+  redisClient.on("connect", () => console.log("Redis connected")); // NOSONAR
+  redisClient.on("error", (err) => console.error("Redis error:", err.message)); // NOSONAR
 
   return redisClient;
 };

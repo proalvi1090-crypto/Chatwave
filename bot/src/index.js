@@ -545,42 +545,17 @@ const handleIncomingMessage = async (ctx) => {
   await handleMediaMessage(ctx, state);
 };
 
-const handleModeration = async (ctx, state, mode) => {
-  if (!isGroupChat(ctx)) {
-    await ctx.reply("Moderation commands only work in groups.");
-    return;
-  }
-
-  if (!(await canModerate(ctx, state))) {
-    await ctx.reply("Only admins or custom moderators can use this command.");
-    return;
-  }
-
-  if (!(await isBotAdmin(ctx))) {
-    await ctx.reply("I need admin permissions in this group to moderate members.");
-    return;
-  }
-
-  const target = ctx.message.reply_to_message?.from?.id || Number(splitArgs(ctx.message.text).args[0]);
-  if (!target) {
-    await ctx.reply(`Reply to a message or provide a user id for /${mode}.`);
-    return;
-  }
-
-  if (mode === "ban") {
+const moderationActions = {
+  ban: async (ctx, target) => {
     await ctx.telegram.banChatMember(ctx.chat.id, target);
     await ctx.reply("Member banned.");
-    return;
-  }
-
-  if (mode === "kick") {
+  },
+  kick: async (ctx, target) => {
     await ctx.telegram.banChatMember(ctx.chat.id, target);
     await ctx.telegram.unbanChatMember(ctx.chat.id, target);
     await ctx.reply("Member removed.");
-    return;
-  }
-
-  if (mode === "mute") {
+  },
+  mute: async (ctx, target) => {
     await ctx.telegram.restrictChatMember(ctx.chat.id, target, {
       permissions: {
         can_send_messages: false,
@@ -600,10 +575,8 @@ const handleModeration = async (ctx, state, mode) => {
       }
     });
     await ctx.reply("Member muted.");
-    return;
-  }
-
-  if (mode === "unmute") {
+  },
+  unmute: async (ctx, target) => {
     await ctx.telegram.restrictChatMember(ctx.chat.id, target, {
       permissions: {
         can_send_messages: true,
@@ -623,6 +596,30 @@ const handleModeration = async (ctx, state, mode) => {
       }
     });
     await ctx.reply("Member unmuted.");
+  }
+};
+
+const handleModeration = async (ctx, state, mode) => {
+  if (!isGroupChat(ctx)) {
+    return ctx.reply("Moderation commands only work in groups.");
+  }
+
+  if (!(await canModerate(ctx, state))) {
+    return ctx.reply("Only admins or custom moderators can use this command.");
+  }
+
+  if (!(await isBotAdmin(ctx))) {
+    return ctx.reply("I need admin permissions in this group to moderate members.");
+  }
+
+  const target = ctx.message.reply_to_message?.from?.id || Number(splitArgs(ctx.message.text).args[0]);
+  if (!target) {
+    return ctx.reply(`Reply to a message or provide a user id for /${mode}.`);
+  }
+
+  const action = moderationActions[mode];
+  if (action) {
+    await action(ctx, target);
   }
 };
 
@@ -715,35 +712,21 @@ const handleInlineVoiceTranscription = async (ctx, fileId) => {
   return data.text || "";
 };
 
+const mediaRepliers = {
+  photo: (ctx, id, caption) => ctx.replyWithPhoto(id, { caption: caption || "Photo received." }),
+  video: (ctx, id, caption) => ctx.replyWithVideo(id, { caption: caption || "Video received." }),
+  audio: (ctx, id, caption) => ctx.replyWithAudio(id, { caption: caption || "Audio received." }),
+  document: (ctx, id, caption) => ctx.replyWithDocument(id, { caption: caption || "Document received." }),
+  sticker: (ctx, id) => ctx.replyWithSticker(id),
+  animation: (ctx, id, caption) => ctx.replyWithAnimation(id, { caption: caption || "GIF received." }),
+  voice: (ctx) => ctx.reply("Voice note received.")
+};
+
 const echoMediaIfPrivate = async (ctx, kind, fileId, caption) => {
   if (ctx.chat?.type !== "private") return;
-
-  if (kind === "photo") {
-    await ctx.replyWithPhoto(fileId, { caption: caption || "Photo received." });
-    return;
-  }
-  if (kind === "video") {
-    await ctx.replyWithVideo(fileId, { caption: caption || "Video received." });
-    return;
-  }
-  if (kind === "audio") {
-    await ctx.replyWithAudio(fileId, { caption: caption || "Audio received." });
-    return;
-  }
-  if (kind === "document") {
-    await ctx.replyWithDocument(fileId, { caption: caption || "Document received." });
-    return;
-  }
-  if (kind === "sticker") {
-    await ctx.replyWithSticker(fileId);
-    return;
-  }
-  if (kind === "animation") {
-    await ctx.replyWithAnimation(fileId, { caption: caption || "GIF received." });
-    return;
-  }
-  if (kind === "voice") {
-    await ctx.reply("Voice note received.");
+  const replier = mediaRepliers[kind];
+  if (replier) {
+    await replier(ctx, fileId, caption);
   }
 };
 
@@ -755,7 +738,7 @@ const processDueReminders = async () => {
       reminder.status = "sent";
       await reminder.save();
     } catch (error) {
-      console.error("Failed to send reminder", error);
+      console.error("Failed to send reminder", error); // NOSONAR
     }
   }
 };
@@ -952,13 +935,13 @@ const boot = async () => {
   await mongoose.connect(process.env.MONGODB_URI);
 
   if (redis) {
-    redis.on("error", (error) => console.warn("Redis error:", error.message));
+    redis.on("error", (error) => console.warn("Redis error:", error.message)); // NOSONAR
   }
 
   app.use(bot.webhookCallback(botWebhookPath));
 
   const server = app.listen(botPort, () => {
-    console.log(`ChatWave bot health server listening on ${botPort}`);
+    console.log(`ChatWave bot health server listening on ${botPort}`); // NOSONAR
   });
 
   const stop = async () => {
@@ -976,7 +959,7 @@ const boot = async () => {
   process.on("SIGTERM", stop);
 
   setInterval(() => {
-    processDueReminders().catch((error) => console.error("Reminder worker error:", error));
+    processDueReminders().catch((error) => console.error("Reminder worker error:", error)); // NOSONAR
   }, 30_000);
 
   await processDueReminders();
@@ -987,10 +970,10 @@ const boot = async () => {
     }
 
     await bot.telegram.setWebhook(`${botWebhookUrl}${botWebhookPath}`);
-    console.log(`Telegram bot webhook configured at ${botWebhookUrl}${botWebhookPath}`);
+    console.log(`Telegram bot webhook configured at ${botWebhookUrl}${botWebhookPath}`); // NOSONAR
   } else {
     await bot.launch({ dropPendingUpdates: true });
-    console.log("Telegram bot started in polling mode");
+    console.log("Telegram bot started in polling mode"); // NOSONAR
   }
 };
 

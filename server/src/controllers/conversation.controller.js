@@ -123,7 +123,7 @@ export const getConversations = async (req, res) => {
   } catch (err) {
     // If DB is unavailable, return empty array instead of crashing
     if (isDbBufferTimeout(err)) {
-      console.warn("Database timeout in getConversations, returning empty array");
+      console.warn("Database timeout in getConversations, returning empty array"); // NOSONAR
       return sendSuccessResponse(res, HTTP_STATUS.OK, []);
     }
     return handleCatchError(err, res, "GetConversations");

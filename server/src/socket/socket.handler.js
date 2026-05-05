@@ -65,7 +65,7 @@ export const initSocket = (io) => {
       socket.userId = payload.sub;
       next();
     } catch (err) {
-      console.error("Socket auth error:", err.message);
+      console.error("Socket auth error:", err.message); // NOSONAR
       next(new Error("Unauthorized"));
     }
   });

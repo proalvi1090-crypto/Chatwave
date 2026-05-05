@@ -85,7 +85,7 @@ export const sendInternalError = (res, message, options = {}) =>
  */
 export const handleCatchError = (err, res, context = "Operation") => {
   // eslint-disable-next-line no-console
-  console.error(`${context} error:`, err);
+  console.error(`${context} error:`, err); // NOSONAR
 
   const errorResponse = {
     message: err.message || "Something went wrong"

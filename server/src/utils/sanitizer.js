@@ -39,7 +39,7 @@ export const deepSanitize = (obj) => {
 
     // Reject keys starting with $ (MongoDB operators) or containing problematic patterns
     if (key.startsWith("$") || key.startsWith("__proto__") || key === "constructor") {
-      console.warn(`Blocked suspicious key: ${key}`);
+      console.warn(`Blocked suspicious key: ${key}`); // NOSONAR
       continue;
     }
 

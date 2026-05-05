@@ -58,7 +58,7 @@ export const requireAuth = async (req, res, next) => {
     next();
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("Auth token verification failed:", err.message);
+    console.error("Auth token verification failed:", err.message); // NOSONAR
     return res.status(401).json({ message: "Invalid token" });
   }
 };

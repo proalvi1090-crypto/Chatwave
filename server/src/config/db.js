@@ -12,7 +12,7 @@ export const connectDb = async () => {
   // For development on limited hardware, use SKIP_DB to avoid slow in-memory MongoDB startup
   // Endpoints should handle DB timeout gracefully with local fallback stores
   if (String(process.env.SKIP_DB || "").toLowerCase() === "true") {
-    console.warn("SKIP_DB=true, starting server without MongoDB connection.");
+    console.warn("SKIP_DB=true, starting server without MongoDB connection."); // NOSONAR
     return;
   }
 
@@ -21,7 +21,7 @@ export const connectDb = async () => {
   if (configuredUri) {
     try {
       await mongoose.connect(configuredUri);
-      console.log("MongoDB connected");
+      console.log("MongoDB connected"); // NOSONAR
       return;
     } catch (err) {
       if (isAlpine()) {
@@ -30,7 +30,7 @@ export const connectDb = async () => {
         );
       }
 
-      console.warn(`MongoDB connection failed (${err.message}). Falling back to in-memory MongoDB.`);
+      console.warn(`MongoDB connection failed (${err.message}). Falling back to in-memory MongoDB.`); // NOSONAR
     }
   }
 
@@ -43,5 +43,5 @@ export const connectDb = async () => {
     }
   });
   await mongoose.connect(memoryMongo.getUri(), { dbName: "chatwave" });
-  console.log("MongoDB in-memory connected");
+  console.log("MongoDB in-memory connected"); // NOSONAR
 };

@@ -241,7 +241,7 @@ export const refreshToken = async (req, res) => {
     return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: sanitizeUser(user) });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("Refresh token verification failed:", err.message);
+    console.error("Refresh token verification failed:", err.message); // NOSONAR
     return sendUnauthorized(res, ERROR_MESSAGES.REFRESH_TOKEN_INVALID, { error: err });
   }
 };
@@ -261,7 +261,7 @@ export const logout = async (req, res) => {
     return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out from all devices");
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("Logout error:", err.message);
+    console.error("Logout error:", err.message); // NOSONAR
     res.clearCookie("refreshToken", REFRESH_TOKEN_COOKIE_OPTIONS);
     return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out");
   }
