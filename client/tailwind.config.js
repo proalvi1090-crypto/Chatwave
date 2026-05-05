@@ -6,27 +6,39 @@ export default {
     extend: {
       fontFamily: {
         display: ["Manrope", "sans-serif"],
-        body: ["Manrope", "sans-serif"]
+        body: ["Manrope", "sans-serif"],
+        inter: ["Inter", "sans-serif"]
       },
       colors: {
         surface: "#eff2ff",
-        ink: "#0f172a",
+        ink: "#0b1326",
         brand: {
-          50: "#eef2ff",
-          100: "#e0e7ff",
-          200: "#c7d2fe",
-          300: "#a5b4fc",
-          400: "#818cf8",
-          500: "#6366f1",
+          50: "#e0e7ff",
+          100: "#c0c1ff", // Primary
+          200: "#a5b4fc",
+          300: "#8083ff", // Primary Container
+          400: "#6366f1", // Active Indigo
+          500: "#494bd6", // Inverse Primary
           600: "#4f46e5",
           700: "#4338ca",
-          800: "#3730a3",
-          900: "#312e81"
+          800: "#1000a9", // On-Primary
+          900: "#07006c"  // On-Primary Fixed
         },
-        violet: {
-          400: "#a78bfa",
-          500: "#8b5cf6",
-          600: "#7c3aed"
+        rose: {
+          400: "#ffb2b7", // Secondary
+          500: "#f43f5e",
+          600: "#b50036"  // Secondary Container
+        },
+        chatdark: {
+          base: "#0b1326", // Surface
+          bright: "#31394d", // Surface Bright
+          container: {
+            lowest: "#060e20",
+            low: "#131b2e",
+            DEFAULT: "#171f33",
+            high: "#222a3d",
+            highest: "#2d3449"
+          }
         }
       }
     }

@@ -1,18 +1,13 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --tg-bg: #e8ebff;
-  --tg-paper: rgba(255, 255, 255, 0.76);
-  --tg-border: rgba(129, 140, 248, 0.22);
-  --tg-muted: #64748b;
-  --tg-accent: #6366f1;
-  --tg-accent-strong: #7c3aed;
-  --tg-chat-bg: rgba(244, 246, 255, 0.72);
+  color-scheme: light dark;
+  --bg-color: #0b1326;
+  --text-color: #dae2fd;
 }
 
 * {
@@ -21,17 +16,21 @@
 
 html {
   scroll-behavior: smooth;
+  font-family: "Manrope", sans-serif;
 }
 
 body {
-  @apply m-0 font-body text-ink;
-  background-color: var(--tg-bg);
-  background-image: radial-gradient(circle at 12% 10%, rgba(99, 102, 241, 0.2), transparent 28%),
-    radial-gradient(circle at 84% 8%, rgba(124, 58, 237, 0.16), transparent 26%),
-    radial-gradient(circle at 50% 88%, rgba(168, 85, 247, 0.12), transparent 26%),
-    linear-gradient(145deg, #eef2ff 0%, #e8ebff 42%, #f5f3ff 100%);
+  @apply m-0 font-body bg-chatdark-base;
+  /* Level 0: Background */
+  background-color: #0b1326;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15), transparent 35%),
+    radial-gradient(circle at 90% 10%, rgba(244, 63, 94, 0.1), transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(124, 58, 237, 0.12), transparent 35%),
+    linear-gradient(160deg, #060e20 0%, #0b1326 50%, #131b2e 100%);
   min-height: 100vh;
   overflow-x: hidden;
+  color: #dae2fd;
 }
 
 #root {
@@ -39,39 +38,14 @@ body {
   width: 100%;
 }
 
-.dark body {
-  @apply text-slate-100;
-  background-color: #060816;
-  background-image: radial-gradient(circle at 16% 12%, rgba(99, 102, 241, 0.25), transparent 30%),
-    radial-gradient(circle at 82% 8%, rgba(124, 58, 237, 0.18), transparent 26%),
-    radial-gradient(circle at 50% 88%, rgba(67, 56, 202, 0.16), transparent 26%),
-    linear-gradient(150deg, #070a14 0%, #090d1c 44%, #0b1024 100%);
-}
-
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.36), transparent 78%);
-  opacity: 0.22;
-}
-
-.dark body::before {
-  opacity: 0.12;
-}
-
 ::selection {
-  background: rgba(99, 102, 241, 0.24);
+  background: rgba(99, 102, 241, 0.3);
   color: inherit;
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -80,29 +54,76 @@ body::before {
 
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: rgba(99, 102, 241, 0.3);
-  border: 2px solid transparent;
+  background: rgba(192, 193, 255, 0.2);
+  border: 1px solid transparent;
   background-clip: padding-box;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(129, 140, 248, 0.28);
-  background-clip: padding-box;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(192, 193, 255, 0.3);
 }
 
+/* Base Glass Effect */
 .glass {
-  backdrop-filter: blur(20px) saturate(1.2);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.84), rgba(245, 247, 255, 0.7));
-  border: 1px solid var(--tg-border);
-  box-shadow: 0 24px 80px rgba(79, 70, 229, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-.dark .glass {
-  background: linear-gradient(160deg, rgba(15, 18, 38, 0.8), rgba(8, 11, 24, 0.86));
-  border-color: rgba(148, 163, 184, 0.16);
-  box-shadow: 0 24px 80px rgba(2, 6, 23, 0.5);
+/* Level 1: Sidebars */
+.layer-1 {
+  @apply glass;
+  background: rgba(45, 52, 73, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Level 2: Active Panels & Chat Bubbles */
+.layer-2 {
+  @apply glass;
+  background: rgba(49, 57, 77, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Level 3: Modals and Popovers */
+.layer-3 {
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  background: rgba(23, 31, 51, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 24px 80px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Custom Gradients */
+.brand-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #a5b4fc 100%);
+  color: #1000a9;
+}
+
+.brand-text-gradient {
+  background: linear-gradient(135deg, #c0c1ff 0%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Typography styles */
+.label-caps {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.chat-bubble-text {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Auth Shell Update for the new layout/colors */
 .auth-shell {
   min-height: 100dvh;
   display: flex;
@@ -116,45 +137,15 @@ body::before {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   width: min(100%, 72rem);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
 }
 
+/* Enhanced Auth Hero (Level 0 variant) */
 .auth-hero {
-  background: radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.18), transparent 32%),
-    radial-gradient(circle at 78% 82%, rgba(167, 139, 250, 0.28), transparent 36%),
-    linear-gradient(155deg, #1e1b4b 0%, #4338ca 46%, #7c3aed 100%);
-}
-
-.auth-hero::before {
-  content: "";
-  position: absolute;
-  inset: auto -24% -40% auto;
-  width: 420px;
-  height: 420px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 68%);
-}
-
-.panel-frame {
-  backdrop-filter: blur(22px) saturate(1.15);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 24px 80px rgba(8, 15, 39, 0.34);
-}
-
-.panel-surface {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.brand-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 48%, #c084fc 100%);
-}
-
-.brand-text-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  background: radial-gradient(circle at 0% 0%, rgba(255, 178, 183, 0.1), transparent 40%),
+              radial-gradient(circle at 100% 100%, rgba(99, 102, 241, 0.15), transparent 40%),
+              linear-gradient(135deg, #131b2e 0%, #060e20 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 1023px) {
@@ -175,3 +166,4 @@ body::before {
     line-height: 1.1;
   }
 }
+

@@ -119,17 +119,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_8%,rgba(99,102,241,0.28),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(124,58,237,0.22),transparent_26%),linear-gradient(145deg,#070814_0%,#0b1020_42%,#11162a_100%)] p-1 md:p-2.5">
+    <div className="min-h-[100dvh] w-full p-2 md:p-4">
       <CreateGroup open={groupOpen} onClose={() => setGroupOpen(false)} />
-      <div className="panel-frame mx-auto flex h-[calc(100dvh-0.5rem)] max-w-[1600px] flex-col overflow-hidden rounded-[28px] border border-white/10 text-white">
-        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/5 px-3 py-2.5 text-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-[calc(100dvh-1rem)] md:h-[calc(100dvh-2rem)] max-w-7xl flex-col overflow-hidden rounded-[1.5rem] border border-white/10 layer-1 shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-chatdark-bright/40 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/70">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.75)]" />{" "}
-              ChatWave Workspace
+            <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 label-caps text-white">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />{" "}
+              ChatWave Pro
             </div>
-            <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 md:flex">
-              Premium messaging interface
+            <div className="hidden rounded-full border border-white/10 bg-white/5 px-4 py-1.5 label-caps text-white/70 md:flex">
+              Workspace
             </div>
           </div>
           <div className="relative flex items-center gap-2 text-white/70" ref={topMenuRef}>
@@ -191,14 +191,13 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid flex-1 min-h-0 gap-0 overflow-hidden lg:grid-cols-[352px_minmax(0,1fr)]">
-        <aside className={`relative flex min-h-0 flex-col overflow-hidden border-0 border-r border-r-white/10 bg-white/5 p-3 text-white backdrop-blur-xl ${activeConversation ? "hidden lg:block" : "block"}`}>
-          <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_30%_20%,rgba(99,102,241,0.35),transparent_42%),linear-gradient(90deg,rgba(79,70,229,0.2),transparent)]" />
-          <div className="relative mb-3 mt-1 flex items-center justify-between gap-4">
+        <div className="grid flex-1 min-h-0 gap-0 overflow-hidden lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className={`relative flex min-h-0 flex-col overflow-hidden border-r border-white/5 bg-black/10 p-4 text-white z-10 ${activeConversation ? "hidden lg:flex" : "flex"}`}>
+          <div className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_20%_0%,rgba(192,193,255,0.15),transparent_60%)]" />
+          <div className="relative mb-4 mt-2 flex items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">Workspace</p>
+              <p className="label-caps text-brand-100/60 mb-1">User Profile</p>
               <h2 className="font-display text-xl font-semibold leading-tight text-white">{user?.name || "User"}</h2>
-              <p className="text-xs text-white/60">Glassmorphism • Manrope • Indigo Violet</p>
             </div>
             <div className="flex gap-2">
               <button
@@ -222,7 +221,7 @@ export default function Home() {
             <SearchBar />
             <button
               onClick={() => setGroupOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#8b5cf6] px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
+              className="flex w-full items-center justify-center gap-2 rounded-full brand-gradient px-4 py-3 text-sm font-bold text-white shadow-md transition hover:scale-[1.02]"
             >
               <Users size={16} /> Create Group
             </button>

@@ -54,12 +54,13 @@ export default function InputBox() {
   };
 
   return (
-    <form onSubmit={submit} className="relative border-t border-slate-200 bg-white p-1.5 dark:border-slate-800 dark:bg-slate-900">
+    <form onSubmit={submit} className="relative border-t border-white/10 bg-black/20 p-2 md:p-4 backdrop-blur-xl">
       {showEmoji && (
-        <div className="absolute bottom-14 left-2 z-20">
+        <div className="absolute bottom-20 left-4 z-20">
           <Picker
             data={data}
             previewPosition="none"
+            theme="dark"
             onEmojiSelect={(emojiData) => setContent((prev) => prev + (emojiData?.native || ""))}
           />
         </div>
@@ -68,50 +69,50 @@ export default function InputBox() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        className="flex flex-col gap-1.5"
+        className="mx-auto flex max-w-4xl flex-col gap-2"
       >
         {replyingTo ? (
-          <div className="flex items-center justify-between rounded-xl border border-white/20 bg-white/60 px-2.5 py-1 text-xs shadow-sm dark:bg-slate-900/50">
+          <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm shadow-sm backdrop-blur-md">
             <div className="min-w-0 pr-3">
-              <p className="text-xs uppercase tracking-[0.2em] opacity-60">Replying</p>
-              <p className="truncate font-medium">{replyingTo.content || replyingTo.fileName || "Attachment"}</p>
+              <p className="label-caps mb-0.5 text-brand-100/60">Replying to {replyingTo.sender?.name || "message"}</p>
+              <p className="truncate font-medium text-white">{replyingTo.content || replyingTo.fileName || "Attachment"}</p>
             </div>
-            <button type="button" onClick={() => setReplyingTo(null)} className="rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Cancel reply">
+            <button type="button" onClick={() => setReplyingTo(null)} className="rounded-full bg-white/5 p-1.5 text-white/70 hover:bg-white/10 hover:text-white" aria-label="Cancel reply">
               <X size={16} />
             </button>
           </div>
         ) : null}
 
         {file ? (
-          <div className="flex items-center justify-between rounded-xl border border-white/20 bg-white/60 px-2.5 py-1 text-xs shadow-sm dark:bg-slate-900/50">
+          <div className="flex items-center justify-between rounded-2xl border border-brand-100/30 bg-brand-200/10 px-4 py-2 text-sm shadow-sm backdrop-blur-md">
             <div className="min-w-0 pr-3">
-              <p className="truncate font-medium">{file.name}</p>
-              <p className="text-xs opacity-70">{Math.ceil(file.size / 1024)} KB</p>
+              <p className="truncate font-medium text-white">{file.name}</p>
+              <p className="text-xs text-white/60">{Math.ceil(file.size / 1024)} KB</p>
             </div>
-            <button type="button" onClick={() => setFile(null)} className="rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Remove file">
+            <button type="button" onClick={() => setFile(null)} className="rounded-full bg-white/10 p-1.5 text-white/70 hover:bg-white/20 hover:text-white" aria-label="Remove file">
               <X size={16} />
             </button>
           </div>
         ) : null}
-        <div className="flex min-h-[44px] items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800">
-          <button type="button" onClick={() => setShowEmoji((p) => !p)} className="rounded-lg bg-white p-1.5 transition hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600" aria-label="Emoji picker">
-            <Smile size={16} />
+        <div className="flex min-h-[56px] items-center gap-1.5 rounded-full border border-white/10 bg-black/40 p-1.5 shadow-inner backdrop-blur-xl">
+          <button type="button" onClick={() => setShowEmoji((p) => !p)} className="rounded-full bg-white/5 p-2.5 text-white/80 transition hover:bg-white/20 hover:text-white" aria-label="Emoji picker">
+            <Smile size={18} />
           </button>
           <input
             type="text"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Type a message"
-            className="flex-1 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-slate-500 dark:placeholder:text-slate-400"
+            placeholder="Message..."
+            className="flex-1 bg-transparent px-3 py-2 text-[15px] font-medium text-white outline-none placeholder:text-white/40"
           />
-          <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">
-            <Paperclip size={14} />
-            <span className="hidden lg:inline">Attach</span>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white/5 p-2.5 text-sm font-semibold text-white/80 shadow-sm transition hover:bg-white/20 hover:text-white md:px-4 md:py-2.5">
+            <Paperclip size={16} />
+            <span className="hidden md:inline">Attach</span>
             <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" />
           </label>
-          <Button type="submit" disabled={!canSend} className="rounded-lg bg-[#3390ec] px-2.5 py-1.5 text-sm text-white hover:bg-[#2f85da] disabled:cursor-not-allowed disabled:opacity-50">
+          <Button type="submit" disabled={!canSend} className="h-full rounded-full brand-gradient px-4 py-2 font-bold text-white shadow-lg shadow-[#c0c1ff]/20 disabled:cursor-not-allowed disabled:opacity-50 md:px-6">
             <span className="hidden md:inline">Send</span>
-            <Send size={15} className="md:hidden" />
+            <Send size={16} className="md:hidden" />
           </Button>
         </div>
       </motion.div>

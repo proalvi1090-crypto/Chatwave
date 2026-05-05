@@ -28,10 +28,10 @@ export default function MessageBubble({ message, me, onOpenThread, threadActive 
     >
       {!mine ? <Avatar src={message.sender?.profilePic} name={message.sender?.name || "?"} /> : null}
       <div
-        className={`max-w-[86%] rounded-2xl px-3.5 py-2.5 shadow-sm ${
+        className={`max-w-[86%] rounded-[1.5rem] px-5 py-3 shadow-sm backdrop-blur-md ${
           mine
-            ? "border border-[#2f6f4f] bg-[#1f6f51] text-[#ecfff4]"
-            : "border border-[#2f3f56] bg-[#1c2a3e] text-[#eaf2ff]"
+            ? "brand-gradient border border-brand-100/30 text-white shadow-lg shadow-[#c0c1ff]/20"
+            : "layer-2 text-white/90"
         }`}
       >
         {message.pinned ? (

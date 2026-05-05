@@ -27,7 +27,7 @@ export default function Login() {
         initial={{ opacity: 0, scale: 0.98, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="auth-layout panel-frame mx-auto max-w-6xl overflow-hidden rounded-[28px]"
+        className="auth-layout layer-3 mx-auto max-w-6xl overflow-hidden rounded-[28px] border-white/10"
       >
         <section className="auth-hero relative hidden overflow-hidden p-10 text-white lg:block">
           <motion.div
@@ -91,8 +91,8 @@ export default function Login() {
             className="mx-auto max-w-md"
           >
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Welcome back</p>
-            <h2 className="mt-2 font-display text-3xl font-semibold text-slate-900 dark:text-slate-50">Sign in to ChatWave</h2>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">A premium workspace for fast, focused conversations.</p>
+            <h2 className="mt-2 font-display text-3xl font-semibold text-white">Sign in to ChatWave</h2>
+            <p className="mt-2 text-sm text-slate-300">A premium workspace for fast, focused conversations.</p>
 
             <motion.form onSubmit={submit} className="mt-8 space-y-4" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.15 }}>
               <input
@@ -101,7 +101,7 @@ export default function Login() {
                 placeholder="Email address"
                 value={form.email}
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/15 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/35"
+                className="w-full rounded-full border border-white/10 bg-chatdark-bright/40 px-5 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/20 text-white"
               />
               <input
                 required
@@ -109,14 +109,14 @@ export default function Login() {
                 placeholder="Password"
                 value={form.password}
                 onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                className="w-full rounded-2xl border border-white/10 bg-white/70 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/15 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/35"
+                className="w-full rounded-full border border-white/10 bg-chatdark-bright/40 px-5 py-3.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-[#6366f1] focus:ring-4 focus:ring-[#6366f1]/20 text-white"
               />
               {error ? <p className="text-sm text-rose-500">{error}</p> : null}
-              <Button type="submit" className="w-full rounded-2xl py-3 text-sm font-semibold">{loading ? "Signing in..." : "Login"}</Button>
+              <Button type="submit" className="w-full rounded-full py-4 text-sm font-bold brand-gradient text-white shadow-lg transition-transform hover:scale-[1.02]">{loading ? "Signing in..." : "Login"}</Button>
             </motion.form>
 
-            <p className="mt-6 text-sm text-slate-600 dark:text-slate-300">
-              No account? <Link className="font-semibold text-[#6366f1]" to="/register">Create one</Link>
+            <p className="mt-6 text-sm text-slate-300">
+              No account? <Link className="font-semibold text-brand-100 glow-text" to="/register">Create one</Link>
             </p>
           </motion.div>
         </section>

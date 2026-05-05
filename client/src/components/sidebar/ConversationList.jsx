@@ -46,9 +46,9 @@ export default function ConversationList() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.18 }}
             onClick={() => setActiveConversation(conversation)}
-            className={`group w-full rounded-xl border px-3 py-2.5 text-left transition ${
+            className={`group w-full rounded-2xl border px-3 py-2.5 text-left transition ${
               activeConversation?._id === conversation._id
-                ? "border-[#a5b4fc]/50 bg-white/10 shadow-[0_20px_45px_rgba(79,70,229,0.16)] backdrop-blur-xl dark:border-[#a5b4fc]/35 dark:bg-white/10"
+                ? "border-brand-100/30 layer-2"
                 : "border-transparent bg-transparent hover:border-white/10 hover:bg-white/5"
             }`}
           >
@@ -56,8 +56,8 @@ export default function ConversationList() {
               <Avatar src={conversation.isGroup ? conversation.groupIcon : directUser?.profilePic} name={title} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-50">{title}</div>
-                  {directUser ? <span className={`h-2 w-2 rounded-full ${directUser.isOnline ? "bg-emerald-400 shadow-[0_0_16px_rgba(52,211,153,0.7)]" : "bg-slate-400"}`} /> : null}
+                  <div className="truncate text-sm font-semibold text-white">{title}</div>
+                  {directUser ? <span className={`h-2 w-2 rounded-full ${directUser.isOnline ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" : "bg-chatdark-bright"}`} /> : null}
                   {conversation.favoriteBy?.some((id) => String(id) === String(currentUserId)) ? (
                     <Star size={12} className="shrink-0 fill-amber-400 text-amber-500" />
                   ) : null}
@@ -65,15 +65,15 @@ export default function ConversationList() {
                     <BellOff size={12} className="shrink-0 text-slate-400" />
                   ) : null}
                 </div>
-                <div className="truncate text-xs text-slate-600 dark:text-slate-300">
+                <div className="truncate text-xs text-brand-50/70">
                   {conversation.lastMessage?.content || conversation.lastMessage?.fileName || "No messages yet"}
                 </div>
-                {!conversation.isGroup && directUser ? <div className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{directPresence}</div> : null}
+                {!conversation.isGroup && directUser ? <div className="mt-0.5 label-caps opacity-60">{directPresence}</div> : null}
               </div>
-              <div className="flex flex-col items-end gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col items-end gap-1 label-caps opacity-60">
                 <span>{conversation.updatedAt ? dayjs(conversation.updatedAt).format("HH:mm") : ""}</span>
                 {conversation.unreadCount > 0 ? (
-                    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="inline-flex min-w-5 items-center justify-center rounded-full brand-gradient px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm">
                     {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
                   </span>
                 ) : null}
