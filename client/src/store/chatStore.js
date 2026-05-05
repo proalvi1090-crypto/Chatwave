@@ -126,11 +126,10 @@ export const useChatStore = create((set, get) => ({
     });
   },
   generateTempMessageId: () => {
-    // Using Math.random() is acceptable here for temporary client-side message ID
-    // Not for cryptographic purposes. Actual message ID generated server-side.
-    // NOSONAR: S2245 - Non-cryptographic use case (temporary UI message ID only)
-    // eslint-disable-next-line no-restricted-properties
-    return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const array = new Uint8Array(6);
+    crypto.getRandomValues(array);
+    const hex = Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `temp-${Date.now()}-${hex}`;
   },
   scheduleRetry: (pendingId, wait) => {
     setTimeout(() => {

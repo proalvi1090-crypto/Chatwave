@@ -76,12 +76,6 @@ export const sendConflict = (res, message, options = {}) =>
 export const sendInternalError = (res, message, options = {}) =>
   sendErrorResponse(res, HTTP_STATUS.INTERNAL_SERVER_ERROR, message, options);
 
-/**
- * Generic error handler for async route handlers
- */
-export const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
 
 /**
  * Generic catch handler for logging errors

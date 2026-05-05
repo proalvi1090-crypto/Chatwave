@@ -16,6 +16,7 @@ import messageRoutes from "./routes/message.routes.js";
 import { initSocket } from "./socket/socket.handler.js";
 import { initRedis } from "./services/redis.service.js";
 import { initWebPush } from "./services/notification.service.js";
+import { sanitizationMiddleware } from "./utils/sanitizer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -93,6 +94,7 @@ app.use(
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
+app.use(sanitizationMiddleware()); // Sanitize all input to prevent NoSQL injection
 app.use(cookieParser());
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

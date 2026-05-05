@@ -6,20 +6,12 @@
 // Authentication & Security
 export const BCRYPT_ROUNDS = 12;
 export const MIN_PASSWORD_LENGTH = 8;
-export const MAX_LOGIN_ATTEMPTS = 5;
-export const LOGIN_ATTEMPT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 // Message Limits
 export const MAX_MESSAGES_PER_QUERY = 200;
-export const MAX_MESSAGE_LENGTH = 5000;
-export const MAX_FILE_NAME_LENGTH = 255;
 
 // Group Limits
 export const MIN_GROUP_MEMBERS = 1;
-export const MAX_GROUP_NAME_LENGTH = 100;
-
-// Pagination
-export const DEFAULT_PAGE_SIZE = 20;
 
 // HTTP Status Codes
 export const HTTP_STATUS = {
@@ -60,6 +52,7 @@ export const ERROR_MESSAGES = {
   USER_NOT_FOUND: "User not found",
   PARTICIPANT_ID_REQUIRED: "participantId required",
   INVALID_PARTICIPANT_ID: "Invalid participant ID",
+  INVALID_ID_FORMAT: "Invalid ID format",
 
   // Authorization
   FORBIDDEN: "Forbidden",

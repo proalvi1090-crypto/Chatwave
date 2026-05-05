@@ -3,7 +3,8 @@
  * Centralizes common query parameter extraction logic
  */
 
-import { ERROR_MESSAGES } from "./constants.js";
+import { ERROR_MESSAGES, MESSAGE_TYPES } from "./constants.js";
+import { escapeRegex } from "./envValidator.js";
 
 /**
  * Safely extract and trim query parameter
@@ -31,7 +32,11 @@ export const parseDateBoundary = (value, boundary = "start") => {
   if (!raw) return null;
 
   const hasTime = raw.includes("T");
-  const dateString = hasTime ? raw : `${raw}${boundary === "start" ? "T00:00:00.000Z" : "T23:59:59.999Z"}`;
+  let dateString = raw;
+  if (!hasTime) {
+    const suffix = boundary === "start" ? "T00:00:00.000Z" : "T23:59:59.999Z";
+    dateString = `${raw}${suffix}`;
+  }
 
   const date = new Date(dateString);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -74,7 +79,7 @@ export const buildDateFilter = (fromDate, toDate) => {
  * @returns {Object} Normalized filter parameters
  */
 export const extractMessageFilters = (query) => ({
-  searchQuery: getQueryParam(query, "q"),
+  searchQuery: sanitizeSearchQuery(getQueryParam(query, "q")),
   sender: getQueryParam(query, "sender"),
   messageType: getQueryParam(query, "type"),
   isPinned: query.pinned === "true",
@@ -82,6 +87,21 @@ export const extractMessageFilters = (query) => ({
   fromDate: getQueryParam(query, "from"),
   toDate: getQueryParam(query, "to")
 });
+
+
+const isValidObjectIdString = (value) => /^[0-9a-fA-F]{24}$/.test(value);
+
+const isAllowedMessageType = (value) => Object.values(MESSAGE_TYPES).includes(value);
+
+const MAX_SEARCH_QUERY_LENGTH = 100;
+
+const sanitizeSearchQuery = (value) => {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.length > MAX_SEARCH_QUERY_LENGTH) return escapeRegex(trimmed.slice(0, MAX_SEARCH_QUERY_LENGTH));
+  return escapeRegex(trimmed);
+};
 
 /**
  * Build MongoDB filter for message queries
@@ -103,11 +123,11 @@ export const buildMessageFilter = (filters, conversationId, userId) => {
     ];
   }
 
-  if (filters.sender) {
+  if (isValidObjectIdString(filters.sender)) {
     filter.sender = filters.sender;
   }
 
-  if (filters.messageType && filters.messageType !== "all") {
+  if (filters.messageType && filters.messageType !== "all" && isAllowedMessageType(filters.messageType)) {
     filter.type = filters.messageType;
   }
 

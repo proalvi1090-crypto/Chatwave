@@ -1,7 +1,6 @@
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
 import { User } from "../models/User.model.js";
-import { isDbBufferTimeout } from "../utils/dbHelpers.js";
 import { uploadBufferToCloudinary } from "../utils/uploadToCloudinary.js";
 import { getIo, emitToConversation } from "../socket/socket.handler.js";
 import { sendPushNotification } from "../services/notification.service.js";
@@ -25,6 +24,7 @@ import {
   buildMessageFilter,
   buildDateFilter
 } from "../utils/queryHelpers.js";
+import { sanitizeObjectId, sanitizeString } from "../utils/sanitize.js";
 
 const messagePopulate = [
   { path: "sender", select: "name profilePic bio" },
@@ -56,7 +56,12 @@ const determineMessageType = (mimeType) =>
 
 export const getMessagesByConversation = async (req, res) => {
   try {
-    const conversation = await Conversation.findById(req.params.conversationId);
+    const conversationId = sanitizeObjectId(req.params.conversationId);
+    if (!conversationId) {
+      return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+    }
+
+    const conversation = await Conversation.findById(conversationId);
 
     if (!conversation) {
       return sendNotFound(res, ERROR_MESSAGES.CONVERSATION_NOT_FOUND);
@@ -92,7 +97,11 @@ export const getMessagesByConversation = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    const { conversationId, content, type = MESSAGE_TYPES.TEXT, replyTo, clientId = "" } = req.body;
+    const { content, type = MESSAGE_TYPES.TEXT, replyTo, clientId = "" } = req.body;
+    const conversationId = sanitizeObjectId(req.body.conversationId);
+    if (!conversationId) {
+      return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+    }
 
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
@@ -150,10 +159,12 @@ export const sendMessage = async (req, res) => {
 
 export const toggleReaction = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { emoji } = req.body;
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
 
-    if (!emoji) {
+    const { emoji } = req.body;
+    const sanitizedEmoji = sanitizeString(emoji);
+    if (!sanitizedEmoji) {
       return sendBadRequest(res, ERROR_MESSAGES.EMOJI_REQUIRED);
     }
 
@@ -168,19 +179,22 @@ export const toggleReaction = async (req, res) => {
     }
 
     const uid = req.user._id.toString();
-    const reaction = message.reactions.find((r) => r.emoji === emoji);
+    const reactionIndex = message.reactions.findIndex((r) => r.emoji === sanitizedEmoji);
 
-    if (!reaction) {
-      message.reactions.push({ emoji, users: [req.user._id] });
+    if (reactionIndex < 0) {
+      message.reactions.push({ emoji: sanitizedEmoji, users: [req.user._id] });
     } else {
-      const has = reaction.users.some((u) => u.toString() === uid);
-      if (has) {
-        reaction.users = reaction.users.filter((u) => u.toString() !== uid);
-      } else {
+      const reaction = message.reactions[reactionIndex];
+      const userIndex = reaction.users.findIndex((u) => u.toString() === uid);
+
+      if (userIndex < 0) {
         reaction.users.push(req.user._id);
+      } else {
+        reaction.users.splice(userIndex, 1);
       }
+
       if (reaction.users.length === 0) {
-        message.reactions = message.reactions.filter((r) => r.emoji !== emoji);
+        message.reactions.splice(reactionIndex, 1);
       }
     }
 
@@ -196,7 +210,10 @@ export const toggleReaction = async (req, res) => {
 
 export const togglePin = async (req, res) => {
   try {
-    const message = await Message.findById(req.params.id);
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+
+    const message = await Message.findById(id);
     if (!message) {
       return sendNotFound(res, ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
@@ -222,7 +239,10 @@ export const togglePin = async (req, res) => {
 
 export const deleteMessage = async (req, res) => {
   try {
-    const message = await Message.findById(req.params.id);
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+
+    const message = await Message.findById(id);
     if (!message) {
       return sendNotFound(res, ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
@@ -248,12 +268,15 @@ export const deleteMessage = async (req, res) => {
 
 export const markMessageSeen = async (req, res) => {
   try {
-    const message = await Message.findById(req.params.id);
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+
+    const message = await Message.findById(id);
     if (!message) {
       return sendNotFound(res, ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
-    if (!message.seenBy.some((id) => id.toString() === req.user._id.toString())) {
+    if (!message.seenBy.some((seenId) => seenId.toString() === req.user._id.toString())) {
       message.seenBy.push(req.user._id);
       await message.save();
     }

@@ -1,7 +1,5 @@
 import PropTypes from "prop-types";
 
-import PropTypes from "prop-types";
-
 export default function Button({ children, className = "", ...props }) {
   return (
     <button
@@ -12,11 +10,6 @@ export default function Button({ children, className = "", ...props }) {
     </button>
   );
 }
-
-Button.propTypes = {
-  children: PropTypes.node,
-  className: PropTypes.string
-};
 
 Button.propTypes = {
   children: PropTypes.node,

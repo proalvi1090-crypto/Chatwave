@@ -3,9 +3,12 @@ import { User } from "../models/User.model.js";
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
 import { getRedisClient } from "../services/redis.service.js";
+import { validateRequired } from "../utils/envValidator.js";
+import { isValidObjectId } from "../utils/queryHelpers.js";
 
 let ioRef;
 const userSockets = new Map();
+const jwtSecret = validateRequired("JWT_SECRET", "JWT_SECRET is required for socket authentication");
 
 const addUserSocket = (userId, socketId) => {
   const sockets = userSockets.get(userId) || new Set();
@@ -58,7 +61,7 @@ export const initSocket = (io) => {
       const token = socket.handshake.auth?.token;
       if (!token) return next(new Error("Unauthorized"));
 
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const payload = jwt.verify(token, jwtSecret);
       socket.userId = payload.sub;
       next();
     } catch (err) {
@@ -73,20 +76,25 @@ export const initSocket = (io) => {
     await markOnline(userId);
 
     socket.on("join_conversation", async (conversationId) => {
+      if (!isValidObjectId(conversationId)) return;
+
       const conversation = await Conversation.findById(conversationId).select("participants");
       if (!conversation) return;
 
-      const isMember = conversation.participants.some((id) => id.toString() === userId);
+      const isMember = conversation.participants.some((pid) => pid.toString() === userId);
       if (!isMember) return;
 
       socket.join(conversationId);
     });
 
     socket.on("send_message", async ({ conversationId, content, type = "text", replyTo = null }) => {
+      if (!isValidObjectId(conversationId)) return;
+      if (replyTo && !isValidObjectId(replyTo)) return;
+
       const conversation = await Conversation.findById(conversationId);
       if (!conversation) return;
 
-      const isMember = conversation.participants.some((id) => id.toString() === userId);
+      const isMember = conversation.participants.some((pid) => pid.toString() === userId);
       if (!isMember) return;
 
       const message = await Message.create({
@@ -117,10 +125,12 @@ export const initSocket = (io) => {
     });
 
     socket.on("mark_seen", async (messageId) => {
+      if (!isValidObjectId(messageId)) return;
+
       const message = await Message.findById(messageId);
       if (!message) return;
 
-      if (!message.seenBy.some((id) => id.toString() === userId)) {
+      if (!message.seenBy.some((seenId) => seenId.toString() === userId)) {
         message.seenBy.push(userId);
         await message.save();
       }

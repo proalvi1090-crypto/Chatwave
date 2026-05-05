@@ -1,6 +1,7 @@
 import { Conversation } from "../models/Conversation.model.js";
 import { Message } from "../models/Message.model.js";
 import { isDbBufferTimeout } from "../utils/dbHelpers.js";
+import { isValidObjectId } from "../utils/queryHelpers.js";
 import {
   MIN_GROUP_MEMBERS,
   ERROR_MESSAGES,
@@ -14,6 +15,7 @@ import {
   sendSuccessResponse,
   handleCatchError
 } from "../utils/responseHandler.js";
+import { sanitizeObjectId } from "../utils/sanitize.js";
 
 const listPopulate = [
   { path: "participants", select: "name profilePic isOnline lastSeen bio" },
@@ -130,7 +132,7 @@ export const getConversations = async (req, res) => {
 
 export const startPrivateConversation = async (req, res) => {
   try {
-    const { participantId } = req.body;
+    const participantId = sanitizeObjectId(req.body.participantId);
     if (!participantId) {
       return sendBadRequest(res, ERROR_MESSAGES.PARTICIPANT_ID_REQUIRED);
     }
@@ -158,18 +160,26 @@ export const startPrivateConversation = async (req, res) => {
 export const createGroupConversation = async (req, res) => {
   try {
     const { name, memberIds = [], groupIcon } = req.body;
+    const sanitizedName = typeof name === "string" ? name.trim() : "";
 
-    if (!name || memberIds.length < MIN_GROUP_MEMBERS) {
+    if (!sanitizedName || memberIds.length < MIN_GROUP_MEMBERS) {
       return sendBadRequest(res, ERROR_MESSAGES.GROUP_NAME_REQUIRED);
     }
 
-    const uniqueMembers = Array.from(new Set([...memberIds, req.user._id.toString()]));
+    // Validate all member IDs are valid ObjectIds
+    const validMemberIds = memberIds.filter((id) => isValidObjectId(id));
+    if (validMemberIds.length !== memberIds.length) {
+      return sendBadRequest(res, "Invalid member ID format");
+    }
+
+    const uniqueMembers = Array.from(new Set([...validMemberIds, req.user._id.toString()]));
     const participants = uniqueMembers.map(String);
+    const sanitizedIcon = typeof groupIcon === "string" ? groupIcon.trim() : "";
 
     const group = await Conversation.create({
       isGroup: CONVERSATION_TYPES.GROUP,
-      name,
-      groupIcon: groupIcon || "",
+      name: sanitizedName,
+      groupIcon: sanitizedIcon,
       participants,
       admin: req.user._id
     });
@@ -184,7 +194,10 @@ export const createGroupConversation = async (req, res) => {
 
 export const getConversationById = async (req, res) => {
   try {
-    const conversation = await Conversation.findById(req.params.id).populate(listPopulate);
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) return sendBadRequest(res, ERROR_MESSAGES.INVALID_CONVERSATION_ID);
+
+    const conversation = await Conversation.findById(id).populate(listPopulate);
 
     if (!conversation) {
       return sendNotFound(res, ERROR_MESSAGES.CONVERSATION_NOT_FOUND);
@@ -204,7 +217,12 @@ export const getConversationById = async (req, res) => {
 
 export const updateGroupConversation = async (req, res) => {
   try {
-    const conversation = await getGroupConversation(req.params.id);
+    const id = sanitizeObjectId(req.params.id);
+    if (!id) {
+      return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+    }
+
+    const conversation = await getGroupConversation(id);
     if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
@@ -214,8 +232,13 @@ export const updateGroupConversation = async (req, res) => {
     }
 
     const { name, groupIcon } = req.body;
-    if (name !== undefined) conversation.name = name;
-    if (groupIcon !== undefined) conversation.groupIcon = groupIcon;
+    if (name !== undefined) {
+      const sanitizedName = typeof name === "string" ? name.trim() : "";
+      if (sanitizedName) conversation.name = sanitizedName;
+    }
+    if (groupIcon !== undefined) {
+      conversation.groupIcon = typeof groupIcon === "string" ? groupIcon.trim() : "";
+    }
 
     await conversation.save();
     const populated = await populateConversation(conversation);
@@ -231,7 +254,13 @@ export const addGroupMember = async (req, res) => {
     const { id } = req.params;
     const { userId } = req.body;
 
-    const conversation = await getGroupConversation(id);
+    const gid = sanitizeObjectId(id);
+    const uid = sanitizeObjectId(userId);
+    if (!gid || !uid) {
+      return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+    }
+
+    const conversation = await getGroupConversation(gid);
     if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
@@ -240,8 +269,8 @@ export const addGroupMember = async (req, res) => {
       return sendForbidden(res, "Only admin can add member");
     }
 
-    if (!isConversationParticipant(conversation, userId)) {
-      conversation.participants.push(userId);
+    if (!isConversationParticipant(conversation, uid)) {
+      conversation.participants.push(uid);
       await conversation.save();
     }
 
@@ -256,22 +285,29 @@ export const addGroupMember = async (req, res) => {
 export const removeGroupMember = async (req, res) => {
   try {
     const { id, userId } = req.params;
-    const conversation = await getGroupConversation(id);
+
+    const gid = sanitizeObjectId(id);
+    const uid = sanitizeObjectId(userId);
+    if (!gid || !uid) {
+      return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
+    }
+
+    const conversation = await getGroupConversation(gid);
 
     if (!conversation) {
       return sendNotFound(res, "Group not found");
     }
 
     const isAdmin = isConversationAdmin(conversation, req.user._id);
-    const removingSelf = req.user._id.toString() === userId;
+    const removingSelf = req.user._id.toString() === uid;
 
     if (!isAdmin && !removingSelf) {
       return sendForbidden(res, "Only admin can remove other members");
     }
 
-    conversation.participants = conversation.participants.filter((p) => p.toString() !== userId);
+    conversation.participants = conversation.participants.filter((p) => p.toString() !== uid);
 
-    if (conversation.admin?.toString() === userId && conversation.participants.length > 0) {
+    if (conversation.admin?.toString() === uid && conversation.participants.length > 0) {
       [conversation.admin] = conversation.participants;
     }
 
@@ -288,8 +324,10 @@ export const updateConversationPreferences = async (req, res) => {
   try {
     const { id } = req.params;
     const preferences = req.body;
+    const convId = sanitizeObjectId(id);
+    if (!convId) return sendBadRequest(res, ERROR_MESSAGES.INVALID_ID_FORMAT);
 
-    const conversation = await Conversation.findById(id);
+    const conversation = await Conversation.findById(convId);
     if (!conversation) {
       return sendNotFound(res, ERROR_MESSAGES.CONVERSATION_NOT_FOUND);
     }

@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // Development proxy target - can be overridden with VITE_DEV_PROXY_TARGET env var
 // NOSONAR: S5332 - Development environment only, not for production use
-const proxyTarget = process.env.VITE_DEV_PROXY_TARGET || "http://server:5000";
+const proxyTarget = process.env.VITE_DEV_PROXY_TARGET || "http://localhost:5000";
 
 export default defineConfig({
   plugins: [react()],

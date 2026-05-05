@@ -1,7 +1,12 @@
 import jwt from "jsonwebtoken";
+import { validateRequired } from "./envValidator.js";
 
 const ACCESS_TOKEN_AGE = 60 * 15;
 const REFRESH_TOKEN_AGE = 60 * 60 * 24 * 7;
+
+// Validate JWT secrets are configured at module load time
+const jwtSecret = validateRequired("JWT_SECRET", "JWT_SECRET is required for signing access tokens");
+const jwtRefreshSecret = validateRequired("JWT_REFRESH_SECRET", "JWT_REFRESH_SECRET is required for signing refresh tokens");
 
 export const generateAccessToken = (user) =>
   jwt.sign(
@@ -11,7 +16,7 @@ export const generateAccessToken = (user) =>
       name: user.name,
       tokenVersion: user.tokenVersion ?? user.refreshTokenVersion ?? 0
     },
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: ACCESS_TOKEN_AGE }
   );
 
@@ -21,7 +26,7 @@ export const generateRefreshToken = (user) =>
       sub: user._id,
       v: user.refreshTokenVersion
     },
-    process.env.JWT_REFRESH_SECRET,
+    jwtRefreshSecret,
     { expiresIn: REFRESH_TOKEN_AGE }
   );
 

@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 import { User } from "../models/User.model.js";
 import {
   generateAccessToken,
@@ -11,8 +10,7 @@ import {
   BCRYPT_ROUNDS,
   MIN_PASSWORD_LENGTH,
   ERROR_MESSAGES,
-  HTTP_STATUS,
-  NODE_ENVIRONMENT
+  HTTP_STATUS
 } from "../utils/constants.js";
 import {
   sendBadRequest,
@@ -25,11 +23,19 @@ import {
   isValidEmail,
   normalizeEmail
 } from "../utils/queryHelpers.js";
+import { validateRequired } from "../utils/envValidator.js";
+import {
+  isLocalDbDisabled,
+  getLocalUserStore,
+  makeLocalUserId
+} from "../utils/localStore.js";
 
-const localUserStore = globalThis.__chatwaveLocalUsers ?? new Map();
-globalThis.__chatwaveLocalUsers = localUserStore;
 
-const makeLocalUserId = () => new mongoose.Types.ObjectId().toString();
+// Validate JWT secrets at module load time
+const jwtSecret = validateRequired("JWT_SECRET", "JWT_SECRET is required for token operations");
+const jwtRefreshSecret = validateRequired("JWT_REFRESH_SECRET", "JWT_REFRESH_SECRET is required for token operations");
+
+const localUserStore = getLocalUserStore();
 
 const getLocalUserByEmail = (email) => {
   const normalizedEmail = normalizeEmail(email);
@@ -49,7 +55,8 @@ const userToAuthPayload = (user) => ({
   profilePic: user.profilePic || "",
   bio: user.bio || "",
   isOnline: user.isOnline ?? false,
-  lastSeen: user.lastSeen || new Date()
+  lastSeen: user.lastSeen || new Date(),
+  tokenVersion: user.tokenVersion ?? user.refreshTokenVersion ?? 0
 });
 
 /**
@@ -80,15 +87,85 @@ const sanitizeUser = (user) => ({
   lastSeen: user.lastSeen
 });
 
+/**
+ * Perform authentication and send tokens
+ */
+const authenticateAndRespond = async (user, res, getPayload) => {
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+  res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+  return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: getPayload(user) });
+};
+
+/**
+ * Verify password and authenticate local user
+ */
+const verifyAndAuthenticateLocal = async (email, password, res) => {
+  const localUser = getLocalUserByEmail(email);
+  if (!localUser) {
+    return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+  }
+  const isValid = await bcrypt.compare(password, localUser.password);
+  if (!isValid) {
+    return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+  }
+  return authenticateAndRespond(localUser, res, userToAuthPayload);
+};
+
+/**
+ * Verify password and authenticate database user
+ */
+const verifyAndAuthenticateDb = async (email, password, res) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+  }
+  const isValid = await bcrypt.compare(password, user.password);
+  if (!isValid) {
+    return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+  }
+  return authenticateAndRespond(user, res, sanitizeUser);
+};
+
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
   const displayName = typeof name === "string" ? name.trim() : "";
+
+  /**
+   * Create a local user, persist it, and respond with tokens.
+   */
+  const createAndAuthenticateLocalUser = async (normalizedEmail) => {
+    const localUser = {
+      _id: makeLocalUserId(),
+      name: displayName,
+      email: normalizedEmail,
+      password: await bcrypt.hash(password, BCRYPT_ROUNDS),
+      profilePic: "",
+      bio: "",
+      isOnline: false,
+      lastSeen: new Date(),
+      refreshTokenVersion: 0
+    };
+
+    localUserStore.set(localUser._id, localUser);
+    return authenticateAndRespond(localUser, res, userToAuthPayload);
+  };
 
   try {
     const normalizedEmail = normalizeEmail(email);
 
     // Validate input before querying database
     validateRegisterInput(name, email, password);
+
+    if (isLocalDbDisabled()) {
+      const existing = getLocalUserByEmail(email);
+      if (existing) {
+        return sendConflict(res, ERROR_MESSAGES.EMAIL_IN_USE);
+      }
+
+      return createAndAuthenticateLocalUser(normalizedEmail);
+    }
 
     const existing = await User.findOne({ email: normalizedEmail });
     if (existing) {
@@ -110,25 +187,7 @@ export const register = async (req, res) => {
         return sendConflict(res, ERROR_MESSAGES.EMAIL_IN_USE);
       }
 
-      const localUser = {
-        _id: makeLocalUserId(),
-        name: displayName,
-        email: normalizeEmail(email),
-        password: await bcrypt.hash(password, BCRYPT_ROUNDS),
-        profilePic: "",
-        bio: "",
-        isOnline: false,
-        lastSeen: new Date(),
-        refreshTokenVersion: 0
-      };
-
-      localUserStore.set(localUser._id, localUser);
-
-      const accessToken = generateAccessToken(localUser);
-      const refreshToken = generateRefreshToken(localUser);
-      res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-
-      return sendSuccessResponse(res, HTTP_STATUS.CREATED, { accessToken, user: userToAuthPayload(localUser) });
+      return createAndAuthenticateLocalUser(normalizeEmail(email));
     }
 
     return sendBadRequest(res, err.message, { error: err });
@@ -139,8 +198,6 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const normalizedEmail = normalizeEmail(email);
-
     // Validate email format before querying
     if (!isValidEmail(email)) {
       return sendBadRequest(res, ERROR_MESSAGES.EMAIL_REQUIRED);
@@ -149,39 +206,14 @@ export const login = async (req, res) => {
       return sendBadRequest(res, ERROR_MESSAGES.PASSWORD_REQUIRED);
     }
 
-    const user = await User.findOne({ email: normalizedEmail });
-
-    if (!user) {
-      return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
+    if (isLocalDbDisabled()) {
+      return verifyAndAuthenticateLocal(email, password, res);
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
-    }
-
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-    res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-
-    return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: sanitizeUser(user) });
+    return verifyAndAuthenticateDb(email, password, res);
   } catch (err) {
     if (isDbBufferTimeout(err)) {
-      const localUser = getLocalUserByEmail(email);
-      if (!localUser) {
-        return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
-      }
-
-      const isValid = await bcrypt.compare(password, localUser.password);
-      if (!isValid) {
-        return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
-      }
-
-      const accessToken = generateAccessToken(localUser);
-      const refreshToken = generateRefreshToken(localUser);
-      res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
-
-      return sendSuccessResponse(res, HTTP_STATUS.OK, { accessToken, user: userToAuthPayload(localUser) });
+      return verifyAndAuthenticateLocal(email, password, res);
     }
 
     return handleCatchError(err, res, "Login");
@@ -195,7 +227,7 @@ export const refreshToken = async (req, res) => {
       return sendUnauthorized(res, ERROR_MESSAGES.NO_REFRESH_TOKEN);
     }
 
-    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const payload = jwt.verify(token, jwtRefreshSecret);
     const user = await User.findById(payload.sub);
 
     if (!user || user.refreshTokenVersion !== payload.v) {
@@ -220,25 +252,17 @@ export const logout = async (req, res) => {
     const [, token] = authHeader.split(" ");
 
     if (token) {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const payload = jwt.verify(token, jwtSecret);
       await User.findByIdAndUpdate(payload.sub, { $inc: { refreshTokenVersion: 1 } });
     }
 
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === NODE_ENVIRONMENT.PRODUCTION
-    });
+    res.clearCookie("refreshToken", REFRESH_TOKEN_COOKIE_OPTIONS);
 
     return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out from all devices");
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Logout error:", err.message);
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === NODE_ENVIRONMENT.PRODUCTION
-    });
+    res.clearCookie("refreshToken", REFRESH_TOKEN_COOKIE_OPTIONS);
     return sendSuccessResponse(res, HTTP_STATUS.OK, null, "Logged out");
   }
 };

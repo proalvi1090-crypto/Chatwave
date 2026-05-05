@@ -10,18 +10,28 @@ import {
   updateGroupConversation
 } from "../controllers/conversation.controller.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
+import { validateBody, validateParams } from "../middleware/validation.middleware.js";
+import {
+  createGroupSchema,
+  updateGroupSchema,
+  addGroupMemberSchema,
+  startConversationSchema,
+  updatePreferencesSchema,
+  objectIdSchema,
+  removeGroupMemberParamSchema
+} from "../utils/validationSchemas.js";
 
 const router = Router();
 
 router.use(requireAuth);
 
 router.get("/", getConversations);
-router.post("/", startPrivateConversation);
-router.post("/group", createGroupConversation);
-router.get("/:id", getConversationById);
-router.put("/:id/group", updateGroupConversation);
-router.patch("/:id/preferences", updateConversationPreferences);
-router.post("/:id/members", addGroupMember);
-router.delete("/:id/members/:userId", removeGroupMember);
+router.post("/", validateBody(startConversationSchema), startPrivateConversation);
+router.post("/group", validateBody(createGroupSchema), createGroupConversation);
+router.get("/:id", validateParams(objectIdSchema), getConversationById);
+router.put("/:id/group", validateParams(objectIdSchema), validateBody(updateGroupSchema), updateGroupConversation);
+router.patch("/:id/preferences", validateParams(objectIdSchema), validateBody(updatePreferencesSchema), updateConversationPreferences);
+router.post("/:id/members", validateParams(objectIdSchema), validateBody(addGroupMemberSchema), addGroupMember);
+router.delete("/:id/members/:userId", validateParams(removeGroupMemberParamSchema), removeGroupMember);
 
 export default router;
