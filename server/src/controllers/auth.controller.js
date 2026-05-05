@@ -117,7 +117,7 @@ const verifyAndAuthenticateLocal = async (email, password, res) => {
  */
 const verifyAndAuthenticateDb = async (email, password, res) => {
   const normalizedEmail = normalizeEmail(email);
-  const user = await User.findOne({ email: normalizedEmail });
+  const user = await User.findOne({ email: { $eq: String(normalizedEmail) } });
   if (!user) {
     return sendUnauthorized(res, ERROR_MESSAGES.INVALID_CREDENTIALS);
   }
@@ -167,7 +167,7 @@ export const register = async (req, res) => {
       return createAndAuthenticateLocalUser(normalizedEmail);
     }
 
-    const existing = await User.findOne({ email: normalizedEmail });
+    const existing = await User.findOne({ email: { $eq: String(normalizedEmail) } });
     if (existing) {
       return sendConflict(res, ERROR_MESSAGES.EMAIL_IN_USE);
     }

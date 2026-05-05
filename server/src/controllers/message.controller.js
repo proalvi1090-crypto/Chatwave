@@ -84,7 +84,7 @@ export const getMessagesByConversation = async (req, res) => {
       filter.createdAt = dateFilter.createdAt;
     }
 
-    const messages = await Message.find(filter)
+    const messages = await Message.find({ $and: [filter] })
       .populate(messagePopulate)
       .sort({ createdAt: 1 })
       .limit(MAX_MESSAGES_PER_QUERY);
